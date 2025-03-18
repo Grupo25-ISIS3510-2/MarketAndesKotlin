@@ -1,4 +1,6 @@
 package com.uniandes.marketandes
+
+import RegisterScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,20 +22,46 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
-import com.uniandes.marketandes.ui.PagComprar
-import com.uniandes.marketandes.ui.PagVender
-import com.uniandes.marketandes.ui.PagHome
-import com.uniandes.marketandes.ui.PagIntercambio
-import com.uniandes.marketandes.ui.PagChat
+import com.uniandes.marketandes.ui.*
+import com.uniandes.marketandes.ui.authentication.ui.AuthenticationScreen
+import com.uniandes.marketandes.ui.authentication.ui.AuthenticationViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            App()
+            MarketAndesApp()
+        }
+    }
+}
+
+@Composable
+fun MarketAndesApp() {
+    val navController = rememberNavController()
+    val viewModel = remember { AuthenticationViewModel() }
+    val isAuthenticated by viewModel.isAuthenticated.observeAsState(initial = false)
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(1500)
+        isLoading = false
+    }
+
+    if (isLoading) {
+        SplashScreen()
+    } else {
+        if (isAuthenticated) {
+            MainScreen(navController)
+            println(isAuthenticated)
+        } else {
+            AuthenticationScreen(viewModel, navController)
+            println("AuthenticationScreen PASA")
+            println(isAuthenticated)
         }
     }
 }
@@ -49,31 +77,15 @@ fun SplashScreen() {
         Image(
             painter = painterResource(id = R.drawable.market_andes_loading),
             contentDescription = "MarketAndes Logo",
-            modifier = Modifier
-                .size(300.dp)
+            modifier = Modifier.size(300.dp)
         )
     }
 }
 
 @Composable
-fun App() {
-    var isLoading by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        delay(1500)
-        isLoading = false
-    }
-    if (isLoading) {
-        SplashScreen()
-    } else {
-        MainScreen()
-    }
-}
-
-@Composable
-fun MainScreen() {
-    val navController = rememberNavController()
+fun MainScreen(navController: NavHostController) {
     Scaffold(
-        topBar = { HeaderBar()},
+        topBar = { HeaderBar() },
         bottomBar = { BottomNavigationBar(navController) }
     ) { innerPadding ->
         NavHostContainer(navController, Modifier.padding(innerPadding))
@@ -86,16 +98,11 @@ fun HeaderBar() {
     var isSidebarOpen by remember { mutableStateOf(false) }
     TopAppBar(
         title = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Image(
                     painter = painterResource(id = R.drawable.market_andes_largo),
                     contentDescription = "MarketAndes Logo",
-                    modifier = Modifier
-                        .height(50.dp)
-                        .padding(end = 20.dp)
+                    modifier = Modifier.height(50.dp).padding(end = 20.dp)
                 )
             }
         },
@@ -124,7 +131,6 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("", R.drawable.exchange_icon, "pag_intercambio"),
         BottomNavItem("", R.drawable.chat_icon, "pag_chat")
     )
-
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
     NavigationBar(containerColor = Color(0xFF00296B)) {
@@ -158,7 +164,9 @@ fun BottomNavigationBar(navController: NavHostController) {
 
 @Composable
 fun NavHostContainer(navController: NavHostController, modifier: Modifier) {
-    NavHost(navController, startDestination = "pag_home", modifier = modifier) {
+    NavHost(navController, startDestination = "authentication", modifier = modifier) {
+        composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
+        composable("register") { RegisterScreen(navController) }
         composable("pag_comprar") { PagComprar() }
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome() }

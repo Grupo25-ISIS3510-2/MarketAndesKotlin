@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "670061302732",
+    "project_id": "marketandes2025",
+    "storage_bucket": "marketandes2025.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:670061302732:android:cbfa95f2a4b2050e0b8369",
+        "android_client_info": {
+          "package_name": "com.uniandes.marketandes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPARRt0X1ya9-IKaHaQHg8DFnZGz589R8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
