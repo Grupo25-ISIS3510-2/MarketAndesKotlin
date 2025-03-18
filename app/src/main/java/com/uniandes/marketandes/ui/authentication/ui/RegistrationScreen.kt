@@ -77,7 +77,7 @@ fun RegisterScreen()
         }
     }
 }
-//sodpisdo
+//FIX TO DEVELOP
 @Composable
 fun InputField(label: String, value: String, isPassword: Boolean = false, onValueChange: (String) -> Unit) {
     OutlinedTextField(
