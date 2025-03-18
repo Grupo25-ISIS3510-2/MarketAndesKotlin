@@ -171,7 +171,13 @@ fun NavHostContainer(navController: NavHostController, modifier: Modifier) {
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome() }
         composable("pag_intercambio") { PagIntercambio() }
-        composable("pag_chat") { PagChat() }
+        composable("pag_chat") { PagChat(navController) }
+        composable("chatDetail/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId")
+            if (chatId != null) {
+                ChatDetailScreen(chatId = chatId, navController = navController)
+            }
+        }
     }
 }
 
