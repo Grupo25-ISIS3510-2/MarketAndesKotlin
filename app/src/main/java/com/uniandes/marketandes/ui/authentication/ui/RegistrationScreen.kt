@@ -22,7 +22,7 @@ import com.uniandes.marketandes.R
 @Preview
 //navController: NavHostController
 @Composable
-fun RegisterScreen()
+fun RegisterScreen(navController: NavHostController)
 {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
