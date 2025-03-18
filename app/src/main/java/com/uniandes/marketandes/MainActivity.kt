@@ -1,5 +1,5 @@
 package com.uniandes.marketandes
-
+//marketandes
 import RegisterScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -164,7 +164,7 @@ fun BottomNavigationBar(navController: NavHostController) {
 
 @Composable
 fun NavHostContainer(navController: NavHostController, modifier: Modifier) {
-    NavHost(navController, startDestination = "authentication", modifier = modifier) {
+    NavHost(navController, startDestination = "pag_home", modifier = modifier) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
         composable("register") { RegisterScreen(navController) }
         composable("pag_comprar") { PagComprar() }

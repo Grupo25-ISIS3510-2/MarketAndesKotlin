@@ -22,7 +22,7 @@ import com.uniandes.marketandes.R
 @Preview
 //navController: NavHostController
 @Composable
-fun RegisterScreen()
+fun RegisterScreen(navController: NavHostController)
 {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -77,7 +77,9 @@ fun RegisterScreen()
         }
     }
 }
+//marketandes
 
+//FIX TO DEVELOP
 @Composable
 fun InputField(label: String, value: String, isPassword: Boolean = false, onValueChange: (String) -> Unit) {
     OutlinedTextField(
