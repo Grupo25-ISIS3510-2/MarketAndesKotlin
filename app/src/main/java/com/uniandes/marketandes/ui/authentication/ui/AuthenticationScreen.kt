@@ -1,5 +1,6 @@
 package com.uniandes.marketandes.ui.authentication.ui
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,13 +22,17 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.uniandes.marketandes.R
 import kotlinx.coroutines.launch
 
 @Composable
-fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavHostController)
-{
+fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavHostController) {
+
+
     val isLoading by viewModel.isLoading.observeAsState(false)
+    var viewModelReg = RegistrationViewModel()
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading) {
@@ -53,7 +58,7 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
                     modifier = Modifier.size(280.dp)
                 )
                 Spacer(modifier = Modifier.height(20.dp))
-                Login(Modifier.align(Alignment.CenterHorizontally), viewModel)
+                Login(Modifier.align(Alignment.CenterHorizontally), viewModel, navController)
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     text = "¡Al hacer clic en 'Iniciar sesión', aceptas el tratamiento de tus datos para ofrecerte una mejor experiencia!",
@@ -65,29 +70,36 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(25.dp))
-                RegisterButton(navController)
+                Register(viewModelReg, navController)
             }
         }
     }
+    val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
+
+    Log.d("NavController", "Destino actual: $currentDestination")
+
 }
 
 @Composable
-fun RegisterButton(navController: NavHostController)
-{
-    TextButton(onClick = { navController.navigate("pag_home") })
-    {
-        Text(
-            "¿Primera vez? Regístrate aquí",
-            color = Color(0xFF001F5B),
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            textDecoration = TextDecoration.Underline
-        )
+fun Register(viewModelReg: RegistrationViewModel, navController: NavHostController) {
+    val registerEnable by viewModelReg.registerEnable.observeAsState(false)
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        RegistrationButton(registerEnable, navController)
     }
 }
 
+
+
+
 @Composable
-fun Login(modifier: Modifier, viewModel: AuthenticationViewModel) {
+fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController: NavHostController) {
     val email by viewModel.email.observeAsState("")
     val password by viewModel.password.observeAsState("")
     val loginEnable by viewModel.loginEnable.observeAsState(false)
@@ -105,10 +117,42 @@ fun Login(modifier: Modifier, viewModel: AuthenticationViewModel) {
         ForgotPassword()
         Spacer(modifier = Modifier.height(40.dp))
         LoginButton(loginEnable) {
-            coroutineScope.launch { viewModel.onLoginSelected {} }
+            coroutineScope.launch { viewModel.onLoginSelected {navController.navigate("pag_home")} }
         }
     }
 }
+
+
+
+
+
+
+
+
+@Composable
+fun RegistrationButton(registerEnable: Boolean, navController: NavHostController) {
+
+    navController.addOnDestinationChangedListener { controller, destination, arguments ->
+        Log.d("NavController", "Navegando a: ${destination.route}")
+    }
+
+    TextButton(
+
+        onClick = {  // Elimina la pantalla actual del stack
+            navController.navigate("register") }, // Aquí usamos la función pasada como parámetro
+    ) {
+        Text(
+            "¿Primera vez? Regístrate aquí",
+            color = Color(0xFF001F5B),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            textDecoration = TextDecoration.Underline
+        )
+    }
+}
+
+
+
 
 @Composable
 fun LoginButton(loginEnable: Boolean, onLoginSelected: () -> Unit) {
