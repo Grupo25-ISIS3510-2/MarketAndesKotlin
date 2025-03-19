@@ -1,6 +1,7 @@
 package com.uniandes.marketandes
 //marketandes
 import RegisterScreen
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,17 +26,60 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import com.uniandes.marketandes.ui.*
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationScreen
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationViewModel
+import android.Manifest
+import android.widget.Toast
+
 
 class MainActivity : ComponentActivity() {
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MarketAndesApp()
+            // Verificar si los permisos están concedidos
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // Si no están concedidos, solicitarlos
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    LOCATION_PERMISSION_REQUEST_CODE
+                )
+            } else {
+                // Los permisos ya están concedidos, puedes cargar la aplicación
+                MarketAndesApp()
+            }
+        }
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+        deviceId: Int
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions as Array<String>, grantResults)
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Los permisos fueron concedidos, carga la aplicación
+                    setContent {
+                        MarketAndesApp() // Ahora que los permisos están concedidos, muestra la app
+                    }
+                } else {
+                    // Los permisos no fueron concedidos
+                    Toast.makeText(this, "Se requieren permisos de ubicación", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 }
@@ -177,6 +221,9 @@ fun NavHostContainer(navController: NavHostController, modifier: Modifier) {
             if (chatId != null) {
                 ChatDetailScreen(chatId = chatId, navController = navController)
             }
+        }
+        composable("mapaScreen") {
+            MapaScreen(navController = navController)
         }
     }
 }
