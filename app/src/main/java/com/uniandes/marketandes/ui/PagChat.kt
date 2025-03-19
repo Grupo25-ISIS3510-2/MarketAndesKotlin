@@ -2,13 +2,17 @@ package com.uniandes.marketandes.ui
 
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -26,7 +30,7 @@ fun PagChat(navController: NavHostController) {
     val currentUserUID = FirebaseAuth.getInstance().currentUser?.uid
     val db = FirebaseFirestore.getInstance()
     val chats = remember { mutableStateOf<List<Chat>>(emptyList()) }
-    
+
     LaunchedEffect(currentUserUID) {
         currentUserUID?.let {
             db.collection("chats")
@@ -37,7 +41,7 @@ fun PagChat(navController: NavHostController) {
                         val chatID = document.id
                         val userName = document.getString("userName") ?: "Usuario"
                         val lastMessage = document.getString("lastMessage") ?: "No hay mensajes"
-                        val userImage = document.getString("userImage") ?: ""
+                        val userImage = document.getString("userImage") ?: ""  // Puede ser vacío si no tiene imagen
                         Chat(chatID, userName, lastMessage, userImage)
                     }
                     chats.value = chatList
@@ -55,58 +59,61 @@ fun PagChat(navController: NavHostController) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        loadChats(currentUserUID, chats)
 
         LazyColumn {
             items(chats.value) { chat ->
-                ChatItem(chat = chat, onClick = {
-                    navController.navigate("chatDetail/${chat.chatId}")
-                })
+                ChatItem(
+                    chat = chat,
+                    onClick = {
+                        navController.navigate("chatDetail/${chat.chatId}")
+                    },
+                    onLocationClick = {
+                        navController.navigate("mapaScreen")  // Navegar a la pantalla del mapa
+                    }
+                )
             }
         }
     }
 }
 
-fun loadChats(currentUserUID: String?, chats: MutableState<List<Chat>>) {
-    currentUserUID?.let {
-        FirebaseFirestore.getInstance().collection("chats")
-            .whereArrayContains("userIDs", it)
-            .get()
-            .addOnSuccessListener { result ->
-                val chatList = result.documents.map { document ->
-                    val chatID = document.id
-                    val userName = document.getString("userName") ?: "Usuario"
-                    val lastMessage = document.getString("lastMessage") ?: "No hay mensajes"
-                    val userImage = document.getString("userImage") ?: ""
-                    Chat(chatID, userName, lastMessage, userImage)
-                }
-                chats.value = chatList
-            }
-            .addOnFailureListener { e ->
-                Log.w("Firestore", "Error al cargar los chats", e)
-            }
-    }
-}
-
 @Composable
-fun ChatItem(chat: Chat, onClick: () -> Unit) {
+fun ChatItem(chat: Chat, onClick: () -> Unit, onLocationClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .clickable { onClick() }
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(chat.userImage),
-            contentDescription = "Imagen de usuario",
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-        )
+        // Mostrar la imagen de perfil, si existe
+        if (chat.userImage.isNotEmpty()) {
+            Image(
+                painter = rememberAsyncImagePainter(chat.userImage),
+                contentDescription = "Imagen de usuario",
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF00296B))
+            ) {
+                Text(
+                    text = chat.userName.take(1),
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = chat.userName,
                 fontSize = 16.sp,
@@ -118,8 +125,21 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
                 color = Color.Gray
             )
         }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Icono de ubicación al lado derecho
+        Icon(
+            imageVector = Icons.Default.LocationOn,
+            contentDescription = "Ubicación",
+            modifier = Modifier
+                .clickable { onLocationClick() }
+                .size(24.dp)
+        )
     }
 }
+
+
 
 fun createChatBetweenUsers(user1UID: String, user2UID: String) {
     val chatID = if (user1UID < user2UID) "$user1UID$user2UID" else "$user2UID$user1UID"
@@ -158,3 +178,4 @@ fun createChatBetweenUsers(user1UID: String, user2UID: String) {
             Log.w("Firestore", "Error al crear el chat", e)
         }
 }
+
