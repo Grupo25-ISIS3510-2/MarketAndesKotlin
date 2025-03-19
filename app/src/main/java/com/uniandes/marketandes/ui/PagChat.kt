@@ -26,12 +26,11 @@ fun PagChat(navController: NavHostController) {
     val currentUserUID = FirebaseAuth.getInstance().currentUser?.uid
     val db = FirebaseFirestore.getInstance()
     val chats = remember { mutableStateOf<List<Chat>>(emptyList()) }
-
-    // Cargar los chats del usuario actual
+    
     LaunchedEffect(currentUserUID) {
         currentUserUID?.let {
             db.collection("chats")
-                .whereArrayContains("userIDs", it)  // Verificar que el usuario esté en el chat
+                .whereArrayContains("userIDs", it)
                 .get()
                 .addOnSuccessListener { result ->
                     val chatList = result.documents.map { document ->
@@ -56,21 +55,8 @@ fun PagChat(navController: NavHostController) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
+        loadChats(currentUserUID, chats)
 
-        // Crear chat entre dos usuarios de ejemplo (Esto es solo para pruebas)
-        Button(onClick = {
-            // Aquí llamamos a la función para crear un chat entre dos usuarios
-            val user1UID = "ibAqVn9o8rRoEr73X6QCCxIubJA2"  // UID de Juan
-            val user2UID = "oZ32dSMi4fZwwyNk7nXyVU6qZsm2"  // UID de Pepe
-            createChatBetweenUsers(user1UID, user2UID)  // Crea el chat entre ellos
-
-            // Después de crear el chat, volvemos a cargar los chats
-            loadChats(currentUserUID, chats)
-        }) {
-            Text("Crear chat entre Juan y Pepe")
-        }
-
-        // Mostrar los chats
         LazyColumn {
             items(chats.value) { chat ->
                 ChatItem(chat = chat, onClick = {
@@ -81,11 +67,10 @@ fun PagChat(navController: NavHostController) {
     }
 }
 
-// Función para recargar los chats después de crear uno nuevo
 fun loadChats(currentUserUID: String?, chats: MutableState<List<Chat>>) {
     currentUserUID?.let {
         FirebaseFirestore.getInstance().collection("chats")
-            .whereArrayContains("userIDs", it)  // Verificar que el usuario esté en el chat
+            .whereArrayContains("userIDs", it)
             .get()
             .addOnSuccessListener { result ->
                 val chatList = result.documents.map { document ->
@@ -95,7 +80,7 @@ fun loadChats(currentUserUID: String?, chats: MutableState<List<Chat>>) {
                     val userImage = document.getString("userImage") ?: ""
                     Chat(chatID, userName, lastMessage, userImage)
                 }
-                chats.value = chatList  // Actualiza la lista de chats
+                chats.value = chatList
             }
             .addOnFailureListener { e ->
                 Log.w("Firestore", "Error al cargar los chats", e)
@@ -111,13 +96,12 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
             .padding(vertical = 8.dp)
             .clickable { onClick() }
     ) {
-        // Imagen del usuario (puedes usar una imagen circular)
         Image(
             painter = rememberAsyncImagePainter(chat.userImage),
             contentDescription = "Imagen de usuario",
             modifier = Modifier
                 .size(40.dp)
-                .clip(CircleShape) // Imagen circular
+                .clip(CircleShape)
         )
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -137,18 +121,16 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
     }
 }
 
-// Esta es la función que creará un chat entre dos usuarios.
 fun createChatBetweenUsers(user1UID: String, user2UID: String) {
-    // Asegúrate de que la variable esté correctamente referenciada en la cadena
     val chatID = if (user1UID < user2UID) "$user1UID$user2UID" else "$user2UID$user1UID"
 
     val db = FirebaseFirestore.getInstance()
 
     val chatData = hashMapOf(
-        "userName" to "Pepe",  // Nombre del otro usuario, por ejemplo, el de 'pepe@uniandes.edu.co'
-        "lastMessage" to "¡Hola! ¿Cómo estás?",  // Mensaje inicial
-        "userImage" to "URL_imagen_usuario",  // URL de la imagen del usuario
-        "userIDs" to listOf(user1UID, user2UID)  // Los dos usuarios involucrados
+        "userName" to "Pepe",
+        "lastMessage" to "¡Hola! ¿Cómo estás?",
+        "userImage" to "URL_imagen_usuario",
+        "userIDs" to listOf(user1UID, user2UID)
     )
 
     db.collection("chats")
@@ -156,11 +138,10 @@ fun createChatBetweenUsers(user1UID: String, user2UID: String) {
         .set(chatData)
         .addOnSuccessListener {
             Log.d("Firestore", "Chat creado exitosamente")
-            // Agregar el primer mensaje en la subcolección messages
             val firstMessage = hashMapOf(
-                "text" to "¡Hola! ¿Cómo estás?",  // El primer mensaje
-                "senderId" to user1UID,  // El usuario que envía el mensaje (el primero)
-                "timestamp" to System.currentTimeMillis()  // La marca de tiempo
+                "text" to "¡Hola! ¿Cómo estás?",
+                "senderId" to user1UID,
+                "timestamp" to System.currentTimeMillis()
             )
             db.collection("chats")
                 .document(chatID)
