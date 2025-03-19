@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,16 +18,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.uniandes.marketandes.R
+import com.uniandes.marketandes.ui.authentication.ui.RegistrationViewModel
 
-
-@Preview
-//navController: NavHostController
 @Composable
-fun RegisterScreen(navController: NavHostController)
-{
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
+fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostController) {
+    val email by viewModel.email.observeAsState("")
+    val password by viewModel.password.observeAsState("")
+    val confirmPassword by viewModel.confirmPassword.observeAsState("")
+    val registerEnable by viewModel.registerEnable.observeAsState(false)
+    val isLoading by viewModel.isLoading.observeAsState(false)
+    val registerError by viewModel.registerError.observeAsState(null)
 
     Column(
         modifier = Modifier
@@ -52,34 +53,45 @@ fun RegisterScreen(navController: NavHostController)
                     modifier = Modifier.size(220.dp)
                 )
 
-                Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
-                InputField("Email", email) { email = it }
+                InputField("Email", email) { viewModel.onRegisterChange(it, password, confirmPassword) }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                InputField("Contraseña", password, isPassword = true) { password = it }
+
+                InputField("Contraseña", password, isPassword = true) { viewModel.onRegisterChange(email, it, confirmPassword) }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                InputField("Nombre", name) { name = it }
+                InputField("Confirmar contraseña", confirmPassword, isPassword = true) { viewModel.onRegisterChange(email, password, it) }
                 Spacer(modifier = Modifier.height(16.dp))
 
+                if (registerError != null) {
+                    Text(text = registerError!!, color = Color.Red, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 Button(
-                    onClick = { navController.navigate("pag_home") }, // Navega a la pantalla principal
+                    onClick = {
+                        viewModel.onRegisterSelected { navController.navigate("pag_home") }
+                    },
+                    enabled = registerEnable,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00205B)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                         .clip(RoundedCornerShape(8.dp))
                 ) {
-                    Text("Crear cuenta", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Crear cuenta", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
     }
 }
-//marketandes
 
-//FIX TO DEVELOP
 @Composable
 fun InputField(label: String, value: String, isPassword: Boolean = false, onValueChange: (String) -> Unit) {
     OutlinedTextField(
