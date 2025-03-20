@@ -67,7 +67,6 @@ fun PagChat(navController: NavHostController) {
                     onClick = {
                         navController.navigate("chatDetail/${chat.chatId}")
                     },
-                    // Cambia la ruta de navegación a la nueva pantalla de ubicación
                     onLocationClick = {
                         navController.navigate("PagChatMap/${chat.chatId}")
                     }
