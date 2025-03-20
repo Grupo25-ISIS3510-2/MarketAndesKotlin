@@ -54,7 +54,9 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.core.ktx.v160)
     implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
     implementation("io.coil-kt:coil-compose:2.1.0")
+    implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("com.google.android.gms:play-services-maps:17.0.0")
     implementation("com.google.maps.android:maps-compose:2.2.0")
@@ -82,6 +84,7 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.2.1")
+    implementation ("androidx.navigation:navigation-compose:2.5.3")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.firebase.auth.ktx)
 
