@@ -167,11 +167,16 @@ fun NavHostContainer(navController: NavHostController, modifier: Modifier) {
     NavHost(navController, startDestination = "pag_home", modifier = modifier) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
         composable("register") { RegisterScreen(navController) }
-        composable("pag_comprar") { PagComprar() }
+        composable("pag_comprar") { PagComprar(navController) }
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome() }
         composable("pag_intercambio") { PagIntercambio() }
         composable("pag_chat") { PagChat() }
+        composable("pag_compra") { PagComprar(navController) }
+        composable("detalle_compra/{productName}") { backStackEntry ->
+            val productName = backStackEntry.arguments?.getString("productName") ?: ""
+            PagCompraDetail(navController, productName)
+        }
     }
 }
 
