@@ -33,7 +33,6 @@ fun MainScreen() {
     )
 
     var selectedIndex by remember { mutableStateOf(items.indexOfFirst { it.route == "pag_home" }) }
-
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
     Scaffold(
@@ -107,7 +106,7 @@ fun HeaderBar() {
 fun ContentScreen(navController: NavHostController, modifier: Modifier) {
     NavHost(
         navController,
-        startDestination =  "pag_home",
+        startDestination = "pag_home",  // Aquí empieza tu navegación
         modifier = modifier
     ) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
@@ -116,11 +115,27 @@ fun ContentScreen(navController: NavHostController, modifier: Modifier) {
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome() }
         composable("pag_intercambio") { PagIntercambio() }
-        composable("pag_chat") { PagChat() }
+        composable("pag_chat") { PagChat(navController) }
         composable("pag_compra") { PagComprar(navController) }
         composable("detalle_compra/{productName}") { backStackEntry ->
             val productName = backStackEntry.arguments?.getString("productName") ?: ""
             PagCompraDetail(navController, productName)
+        }
+        composable("PagChatMap/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            PagChatMap(
+                navController = navController,
+                chatId = chatId
+            )
+        }
+        composable("chatDetail/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId")
+            if (chatId != null) {
+                ChatDetailScreen(chatId = chatId, navController = navController)
+            }
+        }
+        composable("confirmarUbicacion/{chatId}/{nombreUbicacion}/{imagenUrl}") {
+            ConfirmarUbicacionScreen(navController = navController)
         }
     }
 }
