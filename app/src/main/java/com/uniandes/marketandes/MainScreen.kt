@@ -32,12 +32,9 @@ fun MainScreen() {
         BottomNavItem("", R.drawable.chat_icon, "pag_chat")
     )
 
-
-
     var selectedIndex by remember { mutableStateOf(items.indexOfFirst { it.route == "pag_home" }) }
 
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-
 
     Scaffold(
         topBar = { HeaderBar() },
@@ -74,7 +71,6 @@ fun MainScreen() {
     ) { innerPadding ->
         ContentScreen(navController, Modifier.padding(innerPadding))
     }
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,7 +112,7 @@ fun ContentScreen(navController: NavHostController, modifier: Modifier) {
     ) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
         composable("register") { RegisterScreen(RegistrationViewModel(), navController) }
-        composable("pag_comprar") { PagComprar(NavController) }
+        composable("pag_comprar") { PagComprar(navController) }
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome() }
         composable("pag_intercambio") { PagIntercambio() }
