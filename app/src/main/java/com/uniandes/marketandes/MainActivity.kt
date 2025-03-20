@@ -109,7 +109,6 @@ fun MarketAndesApp(navControllerAuth: NavHostController) {
     {
         if (isAuthenticated)
         {
-
             MainScreen()
             Log.d("MarketAndesAppOLA", "isAuthenticated: $isAuthenticated")
             Log.d("MarketAndesApp", "isLoading: $isLoading")

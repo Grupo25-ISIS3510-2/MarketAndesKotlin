@@ -58,6 +58,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("com.google.android.gms:play-services-maps:17.0.0")
     implementation("com.google.maps.android:maps-compose:2.2.0")
+    implementation("com.google.android.gms:play-services-location:17.0.0")
 
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))

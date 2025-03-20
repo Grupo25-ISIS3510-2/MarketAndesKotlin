@@ -41,7 +41,7 @@ fun PagChat(navController: NavHostController) {
                         val chatID = document.id
                         val userName = document.getString("userName") ?: "Usuario"
                         val lastMessage = document.getString("lastMessage") ?: "No hay mensajes"
-                        val userImage = document.getString("userImage") ?: ""  // Puede ser vacío si no tiene imagen
+                        val userImage = document.getString("userImage") ?: ""
                         Chat(chatID, userName, lastMessage, userImage)
                     }
                     chats.value = chatList
@@ -67,8 +67,9 @@ fun PagChat(navController: NavHostController) {
                     onClick = {
                         navController.navigate("chatDetail/${chat.chatId}")
                     },
+                    // Cambia la ruta de navegación a la nueva pantalla de ubicación
                     onLocationClick = {
-                        navController.navigate("mapaScreen")  // Navegar a la pantalla del mapa
+                        navController.navigate("PagChatMap/${chat.chatId}")
                     }
                 )
             }
@@ -84,7 +85,6 @@ fun ChatItem(chat: Chat, onClick: () -> Unit, onLocationClick: () -> Unit) {
             .padding(vertical = 8.dp)
             .clickable { onClick() }
     ) {
-        // Mostrar la imagen de perfil, si existe
         if (chat.userImage.isNotEmpty()) {
             Image(
                 painter = rememberAsyncImagePainter(chat.userImage),
@@ -119,27 +119,20 @@ fun ChatItem(chat: Chat, onClick: () -> Unit, onLocationClick: () -> Unit) {
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
-            Text(
-                text = chat.lastMessage,
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Icono de ubicación al lado derecho
         Icon(
             imageVector = Icons.Default.LocationOn,
             contentDescription = "Ubicación",
             modifier = Modifier
                 .clickable { onLocationClick() }
-                .size(24.dp)
+                .size(24.dp),
+            tint = Color(0xFF00296B)
         )
     }
 }
-
-
 
 fun createChatBetweenUsers(user1UID: String, user2UID: String) {
     val chatID = if (user1UID < user2UID) "$user1UID$user2UID" else "$user2UID$user1UID"
@@ -178,4 +171,3 @@ fun createChatBetweenUsers(user1UID: String, user2UID: String) {
             Log.w("Firestore", "Error al crear el chat", e)
         }
 }
-
