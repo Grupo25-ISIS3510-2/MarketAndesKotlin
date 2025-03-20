@@ -120,6 +120,3 @@ fun SplashScreen() {
         )
     }
 }
-
-
-

@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavController
 import com.uniandes.marketandes.ui.*
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationScreen
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationViewModel
@@ -115,11 +116,16 @@ fun ContentScreen(navController: NavHostController, modifier: Modifier) {
     ) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
         composable("register") { RegisterScreen(RegistrationViewModel(), navController) }
-        composable("pag_comprar") { PagComprar() }
+        composable("pag_comprar") { PagComprar(NavController) }
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome() }
         composable("pag_intercambio") { PagIntercambio() }
         composable("pag_chat") { PagChat() }
+        composable("pag_compra") { PagComprar(navController) }
+        composable("detalle_compra/{productName}") { backStackEntry ->
+            val productName = backStackEntry.arguments?.getString("productName") ?: ""
+            PagCompraDetail(navController, productName)
+        }
     }
 }
 
