@@ -1,5 +1,4 @@
 package com.uniandes.marketandes.ui
-
 import android.os.Bundle
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
