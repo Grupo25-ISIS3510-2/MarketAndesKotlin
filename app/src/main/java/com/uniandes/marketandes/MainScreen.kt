@@ -46,6 +46,7 @@ fun MainScreen() {
         userLocation = location
     }
 
+
     val items = listOf(
         BottomNavItem("", R.drawable.shop_icon, "pag_comprar"),
         BottomNavItem("", R.drawable.add_icon, "pag_vender"),
