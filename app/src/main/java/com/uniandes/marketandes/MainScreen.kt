@@ -1,9 +1,7 @@
 package com.uniandes.marketandes
-
 import RegisterScreen
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.GridView
@@ -21,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,12 +28,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavController
 import com.uniandes.marketandes.ui.*
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.google.android.gms.maps.model.LatLng
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationScreen
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationViewModel
 import com.uniandes.marketandes.ui.authentication.ui.RegistrationViewModel
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -148,7 +146,7 @@ fun HeaderBar(onMenuClick: () -> Unit) {
 fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modifier: Modifier) {
     NavHost(
         navController,
-        startDestination = "pag_home",  // Aquí empieza tu navegación
+        startDestination = "pag_home",
         modifier = modifier
     ) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
@@ -198,7 +196,7 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 fun DrawerContent(navController: NavController, onClose: () -> Unit) {
     Box(
         modifier = Modifier
-            .width(280.dp)  // Fuerza el ancho a 280.dp
+            .width(280.dp)
             .background(Color(0xFFF7F2FC))
     ) {
         Column(
@@ -236,10 +234,10 @@ fun DrawerItem(icon: ImageVector, text: String, onClick: (() -> Unit)? = null) {
         Icon(
             imageVector = icon,
             contentDescription = text,
-            tint = Color(0xFF1A237E), // Azul oscuro similar al de la imagen
+            tint = Color(0xFF1A237E),
             modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.width(16.dp)) // Espaciado entre icono y texto
+        Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = text,
             fontSize = 16.sp,

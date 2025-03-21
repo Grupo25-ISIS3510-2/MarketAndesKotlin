@@ -118,7 +118,6 @@ fun PagStoreMaps(navController: NavHostController) {
         }
     }
 
-
     AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize()) { mapView ->
         mapView.getMapAsync { googleMap ->
             map = googleMap
