@@ -153,7 +153,7 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("register") { RegisterScreen(RegistrationViewModel(), navController) }
         composable("pag_comprar") { PagComprar(navController) }
         composable("pag_vender") { PagVender() }
-        composable("pag_home") { PagHome() }
+        composable("pag_home") { PagHome(navController) }
         composable("pag_intercambio") { PagIntercambio() }
         composable("pag_chat") { PagChat(navController) }
         composable("pag_compra") { PagComprar(navController) }
@@ -187,8 +187,6 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("ubicaciondetail/{nombreUbicacion}/{imagenUrl}") {
             UbicacionDetail(navController)
         }
-
-
     }
 }
 
