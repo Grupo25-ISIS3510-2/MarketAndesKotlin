@@ -1,5 +1,6 @@
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -29,6 +30,11 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
     val isLoading by viewModel.isLoading.observeAsState(false)
     val registerError by viewModel.registerError.observeAsState(null)
 
+    // Estado para la categoría seleccionada
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf("Selecciona una categoría") }
+    val categories = listOf("Ciencias", "Tecnología", "Lenguas", "Arquitectura")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,14 +61,39 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                InputField("Email", email) { viewModel.onRegisterChange(it, password, confirmPassword) }
+                InputField("Email", email) { viewModel.onRegisterChange(it, password, confirmPassword, selectedCategory) }
                 Spacer(modifier = Modifier.height(8.dp))
 
-
-                InputField("Contraseña", password, isPassword = true) { viewModel.onRegisterChange(email, it, confirmPassword) }
+                InputField("Contraseña", password, isPassword = true) { viewModel.onRegisterChange(email, it, confirmPassword, selectedCategory) }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                InputField("Confirmar contraseña", confirmPassword, isPassword = true) { viewModel.onRegisterChange(email, password, it) }
+                InputField("Confirmar contraseña", confirmPassword, isPassword = true) { viewModel.onRegisterChange(email, password, it, selectedCategory) }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Dropdown para seleccionar la categoría
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = { expanded = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(selectedCategory)
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    selectedCategory = category
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (registerError != null) {
@@ -74,7 +105,7 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                     onClick = {
                         viewModel.onRegisterSelected { navController.navigate("pag_home") }
                     },
-                    enabled = registerEnable,
+                    enabled = registerEnable && selectedCategory != "Selecciona una categoría de preferencia",
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00205B)),
                     modifier = Modifier
                         .fillMaxWidth()

@@ -24,6 +24,9 @@ class RegistrationViewModel : ViewModel() {
     private val _confirmPassword = MutableLiveData<String>()
     val confirmPassword: LiveData<String> = _confirmPassword
 
+    private val _selectedCategory = MutableLiveData<String?>()
+    val selectedCategory: LiveData<String?> = _selectedCategory
+
     private val _registerEnable = MutableLiveData<Boolean>()
     val registerEnable: LiveData<Boolean> = _registerEnable
 
@@ -36,11 +39,22 @@ class RegistrationViewModel : ViewModel() {
     private val _registerError = MutableLiveData<String?>()
     val registerError: LiveData<String?> = _registerError
 
-    fun onRegisterChange(email: String, password: String, confirmPassword: String) {
+    fun onRegisterChange(email: String, password: String, confirmPassword: String, category: String?) {
         _email.value = email
         _password.value = password
         _confirmPassword.value = confirmPassword
-        _registerEnable.value = isValidEmail(email) && isValidPassword(password) && password == confirmPassword
+        _selectedCategory.value = category
+
+        _registerEnable.value = isValidEmail(email) && isValidPassword(password) &&
+                password == confirmPassword && !category.isNullOrEmpty()
+    }
+
+    fun onCategorySelected(category: String) {
+        _selectedCategory.value = category
+        _registerEnable.value = isValidEmail(_email.value ?: "") &&
+                isValidPassword(_password.value ?: "") &&
+                _password.value == _confirmPassword.value &&
+                !category.isNullOrEmpty()
     }
 
     fun onRegisterSelected(home: () -> Unit) {
@@ -51,13 +65,11 @@ class RegistrationViewModel : ViewModel() {
                     .addOnCompleteListener { task ->
                         _isLoading.value = false
                         if (task.isSuccessful) {
-                            Log.d("MarketAndesRegister", "createUserWithEmailAndPassword: Registrado exitosamente!")
+                            Log.d("MarketAndesRegister", "Usuario registrado con éxito!")
                             _isRegistered.value = true
-                            val user = FirebaseAuth.getInstance().currentUser
-                            Log.d("MarketAndesRegister", "signInWithEmailAndPassword: ${user?.email}")
                             home()
                         } else {
-                            Log.d("MarketAndesRegister", "createUserWithEmailAndPassword: ${task.exception?.message}")
+                            Log.d("MarketAndesRegister", "Error en registro: ${task.exception?.message}")
                             _registerError.value = task.exception?.message
                         }
                     }
