@@ -6,16 +6,13 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Firebase
+import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 
-class AuthenticationViewModel : ViewModel()
-{
+class AuthenticationViewModel : ViewModel() {
 
-    private val auth: FirebaseAuth = Firebase.auth
-    private val _loading = MutableLiveData(false)
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     private val _email = MutableLiveData<String>()
     val email: LiveData<String> = _email
@@ -35,8 +32,7 @@ class AuthenticationViewModel : ViewModel()
     private val _loginError = MutableLiveData<String?>()
     val loginError: LiveData<String?> = _loginError
 
-    fun onLoginChange(email: String, password: String)
-    {
+    fun onLoginChange(email: String, password: String) {
         _email.value = email
         _password.value = password
         _loginEnable.value = isValidEmail(email) && isValidPassword(password)
@@ -54,6 +50,9 @@ class AuthenticationViewModel : ViewModel()
                         if (task.isSuccessful)
                         {
                             Log.d("MarketAndesLogin", "signInWithEmailAndPassword: Logueado!!")
+
+                            val user = FirebaseAuth.getInstance().currentUser
+                            Log.d("MarketAndesLogin", "signInWithEmailAndPassword: ${user?.email}")
                             _isAuthenticated.value = true
                             home()
                         } else
@@ -72,8 +71,12 @@ class AuthenticationViewModel : ViewModel()
         }
     }
 
-    fun clearError()
-    {
+    fun logout() {
+        auth.signOut()
+        _isAuthenticated.value = false  // 🔴 Asegura que cuando cierre sesión, se actualice el estado
+    }
+
+    fun clearError() {
         _loginError.value = null
     }
 
@@ -81,5 +84,4 @@ class AuthenticationViewModel : ViewModel()
         Patterns.EMAIL_ADDRESS.matcher(email).matches() && email.endsWith("@uniandes.edu.co")
 
     private fun isValidPassword(password: String): Boolean = password.length >= 6
-
 }

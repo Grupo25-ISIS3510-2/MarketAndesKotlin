@@ -52,7 +52,15 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.core.ktx.v160)
     implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
+    implementation("io.coil-kt:coil-compose:2.1.0")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("androidx.appcompat:appcompat:1.3.1")
+    implementation("com.google.android.gms:play-services-maps:17.0.0")
+    implementation("com.google.maps.android:maps-compose:2.2.0")
+    implementation("com.google.android.gms:play-services-location:17.0.0")
 
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
@@ -63,6 +71,7 @@ dependencies {
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-firestore-ktx")
 
 
     // Add the dependencies for any other desired Firebase products
@@ -75,6 +84,7 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.2.1")
+    implementation ("androidx.navigation:navigation-compose:2.5.3")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.firebase.auth.ktx)
 
