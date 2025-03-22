@@ -46,8 +46,6 @@ fun GetUserLocation(onLocationRetrieved: (LatLng) -> Unit) {
     }
 }
 
-
-
 @Composable
 fun PagStoreMaps(navController: NavHostController) {
 
@@ -66,7 +64,6 @@ fun PagStoreMaps(navController: NavHostController) {
             userLocation = location
         }
     }
-
 
     val recommendedStore = listOf(
         PuntoDeInteres(
@@ -122,11 +119,9 @@ fun PagStoreMaps(navController: NavHostController) {
         mapView.getMapAsync { googleMap ->
             map = googleMap
 
-            // Agregar marcadores de las tiendas
             recommendedStore.forEach { punto ->
                 googleMap.addMarker(MarkerOptions().position(punto.latLng).title(punto.nombreUbicacion))
             }
-            // Listener para los clics en los marcadores
             googleMap.setOnMarkerClickListener { clickedMarker ->
                 val selectedPunto = recommendedStore.find { it.nombreUbicacion == clickedMarker.title }
                 if (selectedPunto != null) {
@@ -135,12 +130,10 @@ fun PagStoreMaps(navController: NavHostController) {
                 true
             }
 
-            // Si la ubicación del usuario está disponible, agregar marcador y mover la cámara
             userLocation?.let { location ->
                 googleMap.addMarker(MarkerOptions().position(location).title("Mi ubicación"))
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
             } ?: run {
-                // Si no hay ubicación del usuario, centrar en la primera tienda
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(recommendedStore[0].latLng, 15f))
             }
         }
@@ -153,7 +146,6 @@ fun PagStoreMaps(navController: NavHostController) {
         }
     }
 
-    // Botones flotantes
     Column(
         modifier = Modifier
             .fillMaxSize()

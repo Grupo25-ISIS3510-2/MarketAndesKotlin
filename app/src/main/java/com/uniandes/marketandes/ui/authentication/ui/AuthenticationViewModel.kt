@@ -71,7 +71,6 @@ class AuthenticationViewModel : ViewModel() {
         }
     }
 
-
     fun logout() {
         auth.signOut()
         _isAuthenticated.value = false  // 🔴 Asegura que cuando cierre sesión, se actualice el estado

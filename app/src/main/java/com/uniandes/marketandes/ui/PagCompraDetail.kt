@@ -213,6 +213,7 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
         }
     } ?: CircularProgressIndicator(modifier = Modifier.padding(16.dp))
 }
+
 @Composable
 fun CommentItem(comment: Comment) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -230,7 +231,6 @@ fun CommentItem(comment: Comment) {
     }
 }
 
-// Función para obtener detalles de un producto desde Firestore
 suspend fun getProductDetails(db: FirebaseFirestore, name: String): Product? {
     return try {
         val snapshot = db.collection("products")

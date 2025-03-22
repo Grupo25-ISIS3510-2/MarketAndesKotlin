@@ -58,7 +58,6 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
             .fillMaxWidth()
             .padding(8.dp)
     ) {
-        // Imagen del producto
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
             contentDescription = "Imagen de ${product.name}",
@@ -69,7 +68,6 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
                 .clip(RoundedCornerShape(8.dp))
         )
 
-        // Nombre del producto con navegación
         Text(
             text = product.name,
             fontSize = 16.sp,
@@ -79,7 +77,6 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
                 .clickable { navController.navigate("detalle_compra/${product.name}") }
         )
 
-        // Precio
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -99,7 +96,6 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
     }
 }
 
-// Función para obtener los productos de Firebase Firestore
 suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduct> {
     return try {
         val snapshot = db.collection("products").get().await()
@@ -119,7 +115,6 @@ suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduc
     }
 }
 
-// Función para obtener los comentarios de un producto desde Firestore
 private suspend fun getHomeCommentsForProduct(db: FirebaseFirestore, name: String): List<ProductComment> {
     return try {
         val commentsSnapshot = db.collection("products")
@@ -138,13 +133,11 @@ private suspend fun getHomeCommentsForProduct(db: FirebaseFirestore, name: Strin
     }
 }
 
-// Modelo de Comentario
 data class ProductComment(
     val text: String,
     val author: String
 )
 
-// Modelo de Producto
 data class HomeProduct(
     val name: String,
     val price: Int,

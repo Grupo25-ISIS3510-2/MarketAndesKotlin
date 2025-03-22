@@ -23,7 +23,6 @@ import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-
 @Composable
 fun PagComprar(navController: NavHostController) {
     var productos by remember { mutableStateOf<List<Product>>(emptyList()) }
@@ -59,7 +58,6 @@ fun ProductCard(product: Product, navController: NavHostController) {
             .fillMaxWidth()
             .padding(8.dp)
     ) {
-        // Imagen del producto
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
             contentDescription = "Imagen de ${product.name}",
@@ -70,7 +68,6 @@ fun ProductCard(product: Product, navController: NavHostController) {
                 .clip(RoundedCornerShape(8.dp))
         )
 
-        // Nombre del producto con navegación
         Text(
             text = product.name,
             fontSize = 16.sp,
@@ -80,7 +77,6 @@ fun ProductCard(product: Product, navController: NavHostController) {
                 .clickable { navController.navigate("detalle_compra/${product.name}") }
         )
 
-        // Precio
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,7 +96,6 @@ fun ProductCard(product: Product, navController: NavHostController) {
     }
 }
 
-// Función para obtener los productos de Firebase Firestore
 suspend fun getProductsFromFirestore(db: FirebaseFirestore): List<Product> {
     return try {
         val snapshot = db.collection("products").get().await()
@@ -120,7 +115,6 @@ suspend fun getProductsFromFirestore(db: FirebaseFirestore): List<Product> {
     }
 }
 
-// Función para obtener los comentarios de un producto desde Firestore
 suspend fun getCommentsForProduct(db: FirebaseFirestore, name: String): List<Comment> {
     return try {
         val commentsSnapshot = db.collection("products")
@@ -139,13 +133,11 @@ suspend fun getCommentsForProduct(db: FirebaseFirestore, name: String): List<Com
     }
 }
 
-// Modelo de Comentario
 data class Comment(
     val text: String,
     val author: String
 )
 
-// Modelo de Producto
 data class Product(
     val name: String,
     val price: Int,

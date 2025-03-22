@@ -28,11 +28,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavHostController) {
-
-
     val isLoading by viewModel.isLoading.observeAsState(false)
     var viewModelReg = RegistrationViewModel()
-
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading) {
@@ -77,7 +74,6 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
 
     Log.d("NavController", "Destino actual: $currentDestination")
-
 }
 
 @Composable
@@ -94,9 +90,6 @@ fun Register(viewModelReg: RegistrationViewModel, navController: NavHostControll
         RegistrationButton(registerEnable, navController)
     }
 }
-
-
-
 
 @Composable
 fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController: NavHostController) {
@@ -122,13 +115,6 @@ fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController:
     }
 }
 
-
-
-
-
-
-
-
 @Composable
 fun RegistrationButton(registerEnable: Boolean, navController: NavHostController) {
 
@@ -137,7 +123,6 @@ fun RegistrationButton(registerEnable: Boolean, navController: NavHostController
     }
 
     TextButton(
-
         onClick = {  // Elimina la pantalla actual del stack
             navController.navigate("register") }, // Aquí usamos la función pasada como parámetro
     ) {
@@ -150,9 +135,6 @@ fun RegistrationButton(registerEnable: Boolean, navController: NavHostController
         )
     }
 }
-
-
-
 
 @Composable
 fun LoginButton(loginEnable: Boolean, onLoginSelected: () -> Unit) {
