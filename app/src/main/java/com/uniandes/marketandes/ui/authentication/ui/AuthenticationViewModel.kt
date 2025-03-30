@@ -36,6 +36,7 @@ class AuthenticationViewModel : ViewModel() {
         _email.value = email
         _password.value = password
         _loginEnable.value = isValidEmail(email) && isValidPassword(password)
+        _loginError.value = null
     }
 
     fun onLoginSelected(home: () -> Unit)
@@ -70,6 +71,28 @@ class AuthenticationViewModel : ViewModel() {
             }
         }
     }
+
+    fun forgotPassword(email: String)
+    {
+        if (email.isNotEmpty())
+        {
+            auth.sendPasswordResetEmail(email)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        _loginError.value = "Correo de recuperación enviado a $email"
+                    } else {
+                        _loginError.value = task.exception?.message ?: "Error al enviar correo"
+                    }
+                }
+        }
+        else
+        {
+            _loginError.value = "Por favor, ingresa tu correo"
+        }
+    }
+
+
+
 
     fun logout() {
         auth.signOut()
