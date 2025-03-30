@@ -1,5 +1,6 @@
 package com.uniandes.marketandes
 import RegisterScreen
+import UserPreferencesViewModel
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,8 @@ import com.uniandes.marketandes.ui.authentication.ui.AuthenticationScreen
 import com.uniandes.marketandes.ui.authentication.ui.AuthenticationViewModel
 import com.uniandes.marketandes.ui.authentication.ui.RegistrationViewModel
 import com.google.android.gms.maps.model.LatLng
+import com.uniandes.marketandes.ui.preferences.FacultySelectionScreen
+import com.uniandes.marketandes.ui.preferences.InterestSelectionScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
