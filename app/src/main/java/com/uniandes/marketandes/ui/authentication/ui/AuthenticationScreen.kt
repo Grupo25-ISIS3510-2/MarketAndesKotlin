@@ -1,22 +1,37 @@
 package com.uniandes.marketandes.ui.authentication.ui
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -30,8 +45,9 @@ import kotlinx.coroutines.launch
 fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavHostController) {
     val isLoading by viewModel.isLoading.observeAsState(false)
     var viewModelReg = RegistrationViewModel()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onTap = {keyboardController?.hide()})}) {
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -45,7 +61,10 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+                    .imePadding()
+                    .windowInsetsPadding(WindowInsets.ime),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -96,18 +115,36 @@ fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController:
     val email by viewModel.email.observeAsState("")
     val password by viewModel.password.observeAsState("")
     val loginEnable by viewModel.loginEnable.observeAsState(false)
+    val loginError by viewModel.loginError.observeAsState(null)
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current // Manejo de foco
+
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        EmailField(email) { viewModel.onLoginChange(it, password) }
+        EmailField(email, { viewModel.onLoginChange(it, password) }, focusManager)
         Spacer(modifier = Modifier.height(16.dp))
-        PasswordField(password) { viewModel.onLoginChange(email, it) }
+        PasswordField(password, { viewModel.onLoginChange(email, it) }, focusManager)
+
+        if (loginError != null)
+        {
+            Text(
+                text = loginError!!,
+                color = Color.Red,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+
+
+
         Spacer(modifier = Modifier.height(8.dp))
-        ForgotPassword()
+        ForgotPassword(viewModel)
         Spacer(modifier = Modifier.height(40.dp))
         LoginButton(loginEnable) {
             coroutineScope.launch { viewModel.onLoginSelected {navController.navigate("pag_home")} }
@@ -166,38 +203,69 @@ fun LoginButton(loginEnable: Boolean, onLoginSelected: () -> Unit) {
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun PasswordField(password: String, onTextFieldChanged: (String) -> Unit) {
+fun PasswordField(password: String, onTextFieldChanged: (String) -> Unit, focusManager: FocusManager) {
+    var passwordVisible = remember { mutableStateOf(false) }
+
     TextField(
         value = password,
         onValueChange = { onTextFieldChanged(it) },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 31.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 31.dp),
         placeholder = { Text("Contraseña") },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() }
+        ),
         singleLine = true,
-        visualTransformation = PasswordVisualTransformation(),
+        visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
+                Icon(
+                    painter = painterResource(id = if (passwordVisible.value) R.drawable.vista else R.drawable.visible),
+                    contentDescription = if (passwordVisible.value) "Ocultar contraseña" else "Mostrar contraseña",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        },
         colors = TextFieldDefaults.textFieldColors()
     )
 }
 
+
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun EmailField(email: String, onTextFieldChanged: (String) -> Unit) {
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+fun EmailField(email: String, onTextFieldChanged: (String) -> Unit, focusManager: FocusManager) {
     TextField(
         value = email,
         onValueChange = { onTextFieldChanged(it) },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 31.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 31.dp),
         placeholder = { Text("Correo electrónico Uniandes") },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Email,
+            imeAction = ImeAction.Next
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+        ),
         singleLine = true,
         colors = TextFieldDefaults.textFieldColors()
     )
 }
 
 @Composable
-fun ForgotPassword() {
+fun ForgotPassword(viewModel: AuthenticationViewModel)
+{
     Text(
         text = "¿Olvidaste tu contraseña?",
-        modifier = Modifier.clickable { },
+        modifier = Modifier.clickable {
+            viewModel.forgotPassword(viewModel.email.value ?: "")
+        },
         fontSize = 12.sp,
         color = Color(0xFF001F5B),
         fontWeight = FontWeight.Bold
