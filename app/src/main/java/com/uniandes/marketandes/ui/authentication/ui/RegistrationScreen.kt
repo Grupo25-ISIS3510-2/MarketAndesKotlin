@@ -1,3 +1,4 @@
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -101,9 +102,13 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
+                navController.addOnDestinationChangedListener { controller, destination, arguments ->
+                    Log.d("NavController", "Navegando a: ${destination.route}")
+                }
+
                 Button(
                     onClick = {
-                        viewModel.onRegisterSelected { navController.navigate("pag_home") }
+                        viewModel.onRegisterSelected { navController.navigate("faculty_selection") }
                     },
                     enabled = registerEnable && selectedCategory != "Selecciona una categoría de preferencia",
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00205B)),

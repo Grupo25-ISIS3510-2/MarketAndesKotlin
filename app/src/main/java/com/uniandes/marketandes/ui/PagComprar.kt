@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,8 +75,8 @@ fun ProductCard(product: Product, navController: NavHostController) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .padding(top = 4.dp)
-                .clickable { navController.navigate("detalle_compra/${product.name}") }
         )
+
 
         Box(
             modifier = Modifier
@@ -90,7 +91,9 @@ fun ProductCard(product: Product, navController: NavHostController) {
                 text = "$ ${product.price}",
                 color = Color.White,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable { navController.navigate("detalle_compra/${product.name}") }
+
             )
         }
     }

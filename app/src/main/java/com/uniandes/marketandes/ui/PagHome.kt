@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -27,9 +28,18 @@ import kotlinx.coroutines.tasks.await
 fun PagHome(navController: NavHostController) {
     var productos by remember { mutableStateOf<List<HomeProduct>>(emptyList()) }
     val db = FirebaseFirestore.getInstance()
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    LaunchedEffect(Unit) {
-        productos = getHomeProductsFromFirestore(db).filter { it.category == "Ciencias" }
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            val preferences = getUserPreferences(db, userId)
+            val allProducts = getHomeProductsFromFirestore(db)
+
+            productos = allProducts.filter { product ->
+                preferences.faculties.contains(product.category) ||
+                        preferences.interests.contains(product.category)
+            }
+        }
     }
 
     Column(
@@ -50,6 +60,7 @@ fun PagHome(navController: NavHostController) {
         }
     }
 }
+
 
 @Composable
 fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
@@ -74,7 +85,7 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .padding(top = 4.dp)
-                .clickable { navController.navigate("detalle_compra/${product.name}") }
+                //.clickable { navController.navigate("detalle_compra/${product.name}") }
         )
 
         Box(
@@ -90,11 +101,34 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
                 text = "$ ${product.price}",
                 color = Color.White,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable { navController.navigate("detalle_compra/${product.name}") }
+
             )
         }
     }
 }
+
+
+suspend fun getUserPreferences(db: FirebaseFirestore, userId: String): UserPreferences {
+    return try {
+        val snapshot = db.collection("users").document(userId).get().await()
+        val faculties = snapshot.get("faculties") as? List<String> ?: emptyList()
+        val interests = snapshot.get("interests") as? List<String> ?: emptyList()
+        UserPreferences(faculties, interests)
+    } catch (e: Exception) {
+        UserPreferences(emptyList(), emptyList())
+    }
+}
+
+data class UserPreferences(
+    val faculties: List<String>,
+    val interests: List<String>
+)
+
+
+
+
 
 suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduct> {
     return try {
