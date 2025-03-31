@@ -23,6 +23,9 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 
 @Composable
 fun PagComprar(navController: NavHostController) {
@@ -44,7 +47,11 @@ fun PagComprar(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        LazyColumn {
+        // Usando LazyVerticalGrid con 2 columnas
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2), // Especificamos que queremos 2 columnas
+            modifier = Modifier.fillMaxSize()
+        ) {
             items(productos) { producto ->
                 ProductCard(product = producto, navController)
             }
@@ -52,12 +59,14 @@ fun PagComprar(navController: NavHostController) {
     }
 }
 
+
 @Composable
 fun ProductCard(product: Product, navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
+            .clickable { navController.navigate("detalle_compra/${product.name}") } // Agregado aquí
     ) {
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
@@ -77,7 +86,6 @@ fun ProductCard(product: Product, navController: NavHostController) {
                 .padding(top = 4.dp)
         )
 
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,13 +99,12 @@ fun ProductCard(product: Product, navController: NavHostController) {
                 text = "$ ${product.price}",
                 color = Color.White,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { navController.navigate("detalle_compra/${product.name}") }
-
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
+
 
 suspend fun getProductsFromFirestore(db: FirebaseFirestore): List<Product> {
     return try {

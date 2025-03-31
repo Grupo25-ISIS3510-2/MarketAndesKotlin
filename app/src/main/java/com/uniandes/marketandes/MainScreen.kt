@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.outlined.Storefront
@@ -36,6 +37,10 @@ import com.google.android.gms.maps.model.LatLng
 import com.uniandes.marketandes.ui.preferences.FacultySelectionScreen
 import com.uniandes.marketandes.ui.preferences.InterestSelectionScreen
 import kotlinx.coroutines.launch
+import android.app.Activity
+import android.content.Intent
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -219,6 +224,18 @@ fun DrawerContent(navController: NavController, onClose: () -> Unit) {
                     onClose()
                 }
             )
+            DrawerItem(
+                icon = Icons.Outlined.Logout,
+                text = "Cerrar Sesión",
+                onClick = {
+                    Firebase.auth.signOut()
+                    val context = navController.context
+                    val intent = Intent(context, MainActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                }
+            )
+
         }
     }
 }

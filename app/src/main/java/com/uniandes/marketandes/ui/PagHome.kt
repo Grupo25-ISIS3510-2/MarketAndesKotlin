@@ -23,6 +23,9 @@ import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 
 @Composable
 fun PagHome(navController: NavHostController) {
@@ -53,7 +56,11 @@ fun PagHome(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        LazyColumn {
+        // Usando LazyVerticalGrid con 2 columnas
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2), // Especificamos que queremos 2 columnas
+            modifier = Modifier.fillMaxSize()
+        ) {
             items(productos) { producto ->
                 HomeProductCard(product = producto, navController)
             }
@@ -62,12 +69,14 @@ fun PagHome(navController: NavHostController) {
 }
 
 
+
 @Composable
 fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
+            .clickable { navController.navigate("detalle_compra/${product.name}") } // Agregado aquí
     ) {
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
@@ -85,7 +94,6 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .padding(top = 4.dp)
-                //.clickable { navController.navigate("detalle_compra/${product.name}") }
         )
 
         Box(
@@ -101,13 +109,12 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
                 text = "$ ${product.price}",
                 color = Color.White,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { navController.navigate("detalle_compra/${product.name}") }
-
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
+
 
 
 suspend fun getUserPreferences(db: FirebaseFirestore, userId: String): UserPreferences {
@@ -125,10 +132,6 @@ data class UserPreferences(
     val faculties: List<String>,
     val interests: List<String>
 )
-
-
-
-
 
 suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduct> {
     return try {
