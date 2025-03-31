@@ -147,7 +147,7 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                 }
 
                 Button(
-                    onClick = { viewModel.onRegisterSelected { navController.navigate("pag_home") } },
+                    onClick = { viewModel.onRegisterSelected { navController.navigate("faculty_selection") } },
                     enabled = registerEnable && selectedCategory != "Selecciona una categoría de preferencia",
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00205B)),
                     modifier = Modifier
