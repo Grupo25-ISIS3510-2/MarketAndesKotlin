@@ -2,61 +2,132 @@ package com.uniandes.marketandes.ui.preferences
 
 import UserPreferencesViewModel
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 
-
 @Composable
-fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPreferencesViewModel)
-{
-    val interests = listOf("Arte", "Física", "Software", "Libros", "Música")
+fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPreferencesViewModel) {
+    val interests = listOf(
+        "Arte", "Física", "Utensilios", "Diseño", "Lenguas", "Ingeniería", "Libros", "Medicina",
+        "Tecnología", "Administración", "Software", "Música", "Arquitectura", "Psicología",
+        "Educación", "Química", "Economía", "Comunicación", "Derecho", "Inglés"
+    )
     val selectedInterests = remember { mutableStateListOf<String>() }
 
-    Column {
-        Text("Selecciona tus intereses")
-        interests.forEach { interest ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        if (selectedInterests.contains(interest)) {
-                            selectedInterests.remove(interest)
-                        } else {
-                            selectedInterests.add(interest)
-                        }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        // Barra amarilla de progreso
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .background(Color(0xFFFFC107)) // Amarillo
+        )
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        // Título y descripción
+        Text(
+            text = "Intereses",
+            fontSize = 48.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF002366) // Azul oscuro
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Déjanos saber tus intereses para recomendarte mejores productos!",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Lista de intereses en ovalos
+        Column {
+            interests.chunked(2).forEach { rowInterests ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowInterests.forEach { interest ->
+                        InterestChip(
+                            text = interest,
+                            isSelected = selectedInterests.contains(interest),
+                            onClick = {
+                                if (selectedInterests.contains(interest)) {
+                                    selectedInterests.remove(interest)
+                                } else {
+                                    selectedInterests.add(interest)
+                                }
+                            }
+                        )
                     }
-            ) {
-                Checkbox(checked = selectedInterests.contains(interest), onCheckedChange = null)
-                Text(interest)
-            }
-        }
-
-
-
-        Button(onClick = {
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-
-            if (userId != null) {
-                viewModel.selectedInterests = selectedInterests
-                viewModel.saveInterests(userId) {  // Usamos el UID real del usuario
-                    navController.navigate("pag_home")
                 }
-            } else {
-                Log.e("InterestSelectionScreen", "Error: Usuario no autenticado")
+                Spacer(modifier = Modifier.height(8.dp))
             }
-        }) {
-            Text("Continuar")
         }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Botón de continuar
+        Button(
+            onClick = {
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                if (userId != null) {
+                    viewModel.selectedInterests = selectedInterests
+                    viewModel.saveInterests(userId) {
+                        navController.navigate("pag_home")
+                    }
+                } else {
+                    Log.e("InterestSelectionScreen", "Error: Usuario no autenticado")
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)), // Azul oscuro
+            shape = RoundedCornerShape(13.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Text(text = "CONTINUAR", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+fun InterestChip(text: String, isSelected: Boolean, onClick: () -> Unit)
+{
+    Box(
+        modifier = Modifier
+            .background(
+                if (isSelected) Color(0xFFFFC107) else Color.LightGray.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(20.dp) // Más redondeado
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 12.dp) // Más grande
+    ) {
+        Text(
+            text = text,
+            fontSize = 16.sp, // Fuente más grande
+            fontWeight = FontWeight.Medium,
+            color = if (isSelected) Color(0xFF002366) else Color.Gray
+        )
     }
 }

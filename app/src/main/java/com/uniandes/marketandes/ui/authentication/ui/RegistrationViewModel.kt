@@ -24,8 +24,6 @@ class RegistrationViewModel : ViewModel() {
     private val _confirmPassword = MutableLiveData<String>()
     val confirmPassword: LiveData<String> = _confirmPassword
 
-    private val _selectedCategory = MutableLiveData<String?>()
-    val selectedCategory: LiveData<String?> = _selectedCategory
 
     private val _registerEnable = MutableLiveData<Boolean>()
     val registerEnable: LiveData<Boolean> = _registerEnable
@@ -39,23 +37,15 @@ class RegistrationViewModel : ViewModel() {
     private val _registerError = MutableLiveData<String?>()
     val registerError: LiveData<String?> = _registerError
 
-    fun onRegisterChange(email: String, password: String, confirmPassword: String, category: String?) {
+    fun onRegisterChange(email: String, password: String, confirmPassword: String) {
         _email.value = email
         _password.value = password
         _confirmPassword.value = confirmPassword
-        _selectedCategory.value = category
 
         _registerEnable.value = isValidEmail(email) && isValidPassword(password) &&
-                password == confirmPassword && !category.isNullOrEmpty()
+                password == confirmPassword
     }
 
-    fun onCategorySelected(category: String) {
-        _selectedCategory.value = category
-        _registerEnable.value = isValidEmail(_email.value ?: "") &&
-                isValidPassword(_password.value ?: "") &&
-                _password.value == _confirmPassword.value &&
-                !category.isNullOrEmpty()
-    }
 
     fun onRegisterSelected(home: () -> Unit) {
         _isLoading.value = true

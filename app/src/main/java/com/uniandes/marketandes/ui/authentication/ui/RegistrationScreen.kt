@@ -28,6 +28,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.ui.authentication.ui.RegistrationViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 
 @Composable
 fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostController) {
@@ -38,14 +41,13 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
     val isLoading by viewModel.isLoading.observeAsState(false)
     val registerError by viewModel.registerError.observeAsState(null)
 
-    var expanded by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf("Selecciona una categoría") }
-    val categories = listOf("Ciencias", "Tecnología", "Lenguas", "Arquitectura")
-
     val focusManager = LocalFocusManager.current // Manejo del foco
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
+
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -80,7 +82,7 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                     focusRequester = emailFocusRequester,
                     onNext = { passwordFocusRequester.requestFocus() }
                 ) {
-                    viewModel.onRegisterChange(it, password, confirmPassword, selectedCategory)
+                    viewModel.onRegisterChange(it, password, confirmPassword)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -89,11 +91,13 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                     label = "Contraseña",
                     value = password,
                     isPassword = true,
+                    passwordVisible = passwordVisible,
+                    onTogglePasswordVisibility = { passwordVisible = !passwordVisible },
                     imeAction = ImeAction.Next,
                     focusRequester = passwordFocusRequester,
                     onNext = { confirmPasswordFocusRequester.requestFocus() }
                 ) {
-                    viewModel.onRegisterChange(email, it, confirmPassword, selectedCategory)
+                    viewModel.onRegisterChange(email, it, confirmPassword)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -102,37 +106,13 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                     label = "Confirmar contraseña",
                     value = confirmPassword,
                     isPassword = true,
+                    passwordVisible = confirmPasswordVisible,
+                    onTogglePasswordVisibility = { confirmPasswordVisible = !confirmPasswordVisible },
                     imeAction = ImeAction.Done,
                     focusRequester = confirmPasswordFocusRequester,
                     onDone = { focusManager.clearFocus() }
                 ) {
-                    viewModel.onRegisterChange(email, password, it, selectedCategory)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Dropdown para seleccionar la categoría
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = { expanded = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(selectedCategory)
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = { Text(category) },
-                                onClick = {
-                                    selectedCategory = category
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
+                    viewModel.onRegisterChange(email, password, it)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -142,13 +122,9 @@ fun RegisterScreen(viewModel: RegistrationViewModel, navController: NavHostContr
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                navController.addOnDestinationChangedListener { controller, destination, arguments ->
-                    Log.d("NavController", "Navegando a: ${destination.route}")
-                }
-
                 Button(
                     onClick = { viewModel.onRegisterSelected { navController.navigate("faculty_selection") } },
-                    enabled = registerEnable && selectedCategory != "Selecciona una categoría de preferencia",
+                    enabled = registerEnable,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00205B)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -171,6 +147,8 @@ fun InputField(
     label: String,
     value: String,
     isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onTogglePasswordVisibility: (() -> Unit)? = null,
     imeAction: ImeAction = ImeAction.Done,
     focusRequester: FocusRequester = remember { FocusRequester() },
     onNext: (() -> Unit)? = null,
@@ -181,7 +159,17 @@ fun InputField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, fontWeight = FontWeight.Bold) },
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        trailingIcon = {
+            if (isPassword) {
+                IconButton(onClick = { onTogglePasswordVisibility?.invoke() }) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                    )
+                }
+            }
+        },
         singleLine = true,
         modifier = Modifier
             .fillMaxWidth()
