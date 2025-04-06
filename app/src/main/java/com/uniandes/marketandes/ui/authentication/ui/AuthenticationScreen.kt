@@ -54,6 +54,25 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
     val context = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser
 
+
+    LaunchedEffect(Unit) {
+        if (currentUser == null) {
+            val credenciales = viewModel.getCredentialSafety(context)
+            if (credenciales != null) {
+                (context as? FragmentActivity)?.let { activity ->
+                    showBiometricPrompt(activity, viewModel) {
+                        navController.navigate("pag_home") {
+                            popUpTo("authentication") { inclusive = true }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()

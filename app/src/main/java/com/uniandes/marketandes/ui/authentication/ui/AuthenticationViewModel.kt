@@ -196,6 +196,7 @@ class AuthenticationViewModel : ViewModel() {
 
 
 
+
     private fun isValidEmail(email: String): Boolean =
         Patterns.EMAIL_ADDRESS.matcher(email).matches() && email.endsWith("@uniandes.edu.co")
 
