@@ -124,8 +124,6 @@ fun AuthNavHost(navController: NavHostController, isAuthenticated: Boolean)
     ) {
         composable("authentication") { AuthenticationScreen(viewModel = viewModel(), navController) }
         composable("register") { RegisterScreen(viewModel = viewModel(), navController) }
-        composable("faculty_selection") { FacultySelectionScreen(navController, UserPreferencesViewModel()) }
-        composable("interest_selection") { InterestSelectionScreen(navController, UserPreferencesViewModel()) }
         composable("pag_home") { MainScreen() }
 
     }
