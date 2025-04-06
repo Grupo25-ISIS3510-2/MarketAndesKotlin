@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -18,35 +17,58 @@ import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPreferencesViewModel) {
+fun InterestSelectionScreen(
+    navController: NavHostController,
+    viewModel: UserPreferencesViewModel,
+    isEdit: Boolean,
+    preselectedInterests: List<String>
+) {
+    Log.d("InterestScreen", "isEdit = $isEdit")
+    Log.d("InterestScreen", "Intereses recibidos por parámetro: ${preselectedInterests.joinToString()}")
+
     val interests = listOf(
         "Arte", "Física", "Utensilios", "Diseño", "Lenguas", "Ingeniería", "Libros", "Medicina",
         "Tecnología", "Administración", "Software", "Música", "Arquitectura", "Psicología",
         "Educación", "Química", "Economía", "Comunicación", "Derecho", "Inglés"
     )
+
     val selectedInterests = remember { mutableStateListOf<String>() }
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // Preseleccionar intereses una sola vez al iniciar
+    LaunchedEffect(Unit) {
+        if (preselectedInterests.isNotEmpty()) {
+            selectedInterests.clear()
+            selectedInterests.addAll(preselectedInterests)
+            viewModel.selectedInterests = selectedInterests
+        } else if (userId != null) {
+            viewModel.loadInterests(userId) { savedInterests ->
+                selectedInterests.clear()
+                selectedInterests.addAll(savedInterests)
+                viewModel.selectedInterests = selectedInterests
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // Barra amarilla de progreso
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.5f)
                 .height(6.dp)
-                .background(Color(0xFFFFC107)) // Amarillo
+                .background(Color(0xFFFFC107))
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        // Título y descripción
         Text(
             text = "Intereses",
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF002366) // Azul oscuro
+            color = Color(0xFF002366)
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
@@ -58,7 +80,6 @@ fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPre
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Lista de intereses en ovalos
         Column {
             interests.chunked(2).forEach { rowInterests ->
                 Row(
@@ -75,6 +96,7 @@ fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPre
                                 } else {
                                     selectedInterests.add(interest)
                                 }
+                                viewModel.selectedInterests = selectedInterests
                             }
                         )
                     }
@@ -85,26 +107,33 @@ fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPre
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Botón de continuar
         Button(
             onClick = {
-                val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
-                    viewModel.selectedInterests = selectedInterests
+                    Log.d("InterestScreen", "Intereses seleccionados: $selectedInterests")
                     viewModel.saveInterests(userId) {
-                        navController.navigate("pag_home")
+                        if (isEdit) {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate("pag_home")
+                        }
                     }
                 } else {
                     Log.e("InterestSelectionScreen", "Error: Usuario no autenticado")
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)), // Azul oscuro
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)),
             shape = RoundedCornerShape(13.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text(text = "CONTINUAR", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(
+                text = if (isEdit) "GUARDAR CAMBIOS" else "CONTINUAR",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -112,20 +141,19 @@ fun InterestSelectionScreen(navController: NavHostController, viewModel: UserPre
 }
 
 @Composable
-fun InterestChip(text: String, isSelected: Boolean, onClick: () -> Unit)
-{
+fun InterestChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .background(
                 if (isSelected) Color(0xFFFFC107) else Color.LightGray.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(20.dp) // Más redondeado
+                shape = RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 12.dp) // Más grande
+            .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
         Text(
             text = text,
-            fontSize = 16.sp, // Fuente más grande
+            fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = if (isSelected) Color(0xFF002366) else Color.Gray
         )

@@ -17,38 +17,59 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 
-
 @Composable
-fun FacultySelectionScreen(navController: NavHostController, viewModel: UserPreferencesViewModel)
-{
+fun FacultySelectionScreen(
+    navController: NavHostController,
+    viewModel: UserPreferencesViewModel,
+    isEdit: Boolean,
+    preselectedFaculties: List<String>
+) {
+    Log.d("FacultyScreen", "isEdit = $isEdit")
+    Log.d("FacultyScreen", "Facultades recibidas por parámetro: ${preselectedFaculties.joinToString()}")
+
     val faculties = listOf(
         "Medicina", "Derecho", "Ingeniería", "Educación", "Ciencias",
         "Ciencias Sociales", "Economía", "Artes y humanidades",
         "Administración", "Arquitectura"
     )
+
     val selectedFaculties = remember { mutableStateListOf<String>() }
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // Preseleccionar facultades una sola vez al iniciar
+    LaunchedEffect(Unit) {
+        if (preselectedFaculties.isNotEmpty()) {
+            selectedFaculties.clear()
+            selectedFaculties.addAll(preselectedFaculties)
+            viewModel.selectedFaculties = selectedFaculties
+        } else if (userId != null) {
+            viewModel.loadFaculties(userId) { savedFaculties ->
+                selectedFaculties.clear()
+                selectedFaculties.addAll(savedFaculties)
+                viewModel.selectedFaculties = selectedFaculties
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // Barra amarilla de progreso
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.5f) // Solo hasta la mitad
+                .fillMaxWidth(0.5f)
                 .height(6.dp)
-                .background(Color(0xFFFFC107)) // Amarillo
+                .background(Color(0xFFFFC107))
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        // Título y descripción
         Text(
             text = "Facultades",
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF002366) // Azul oscuro
+            color = Color(0xFF002366)
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
@@ -60,7 +81,6 @@ fun FacultySelectionScreen(navController: NavHostController, viewModel: UserPref
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Lista de facultades en ovalo
         Column {
             faculties.chunked(2).forEach { rowFaculties ->
                 Row(
@@ -75,8 +95,9 @@ fun FacultySelectionScreen(navController: NavHostController, viewModel: UserPref
                                 if (selectedFaculties.contains(faculty)) {
                                     selectedFaculties.remove(faculty)
                                 } else {
-                                    selectedFaculties.add(faculty) // Se permite seleccionar varias
+                                    selectedFaculties.add(faculty)
                                 }
+                                viewModel.selectedFaculties = selectedFaculties
                             }
                         )
                     }
@@ -87,26 +108,33 @@ fun FacultySelectionScreen(navController: NavHostController, viewModel: UserPref
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Botón de continuar
         Button(
             onClick = {
-                val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
-                    viewModel.selectedFaculties = selectedFaculties
+                    Log.d("FacultyScreen", "Facultades seleccionadas: $selectedFaculties")
                     viewModel.saveFaculties(userId) {
-                        navController.navigate("interest_selection")
+                        if (isEdit) {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate("interest_selection")
+                        }
                     }
                 } else {
                     Log.e("FacultySelectionScreen", "Error: Usuario no autenticado")
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)), // Azul oscuro
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)),
             shape = RoundedCornerShape(13.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text(text = "CONTINUAR", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(
+                text = if (isEdit) "GUARDAR CAMBIOS" else "CONTINUAR",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -114,13 +142,12 @@ fun FacultySelectionScreen(navController: NavHostController, viewModel: UserPref
 }
 
 @Composable
-fun FacultyChip(text: String, isSelected: Boolean, onClick: () -> Unit)
-{
+fun FacultyChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .background(
                 if (isSelected) Color(0xFFFFC107) else Color.LightGray.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(20.dp) // Más redondeado
+                shape = RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 12.dp)

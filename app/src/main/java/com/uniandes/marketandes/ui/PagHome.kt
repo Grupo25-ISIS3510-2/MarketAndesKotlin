@@ -1,5 +1,6 @@
 package com.uniandes.marketandes.ui
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
 import androidx.compose.foundation.Image
@@ -42,6 +43,9 @@ fun PagHome(navController: NavHostController) {
                 preferences.faculties.contains(product.category) ||
                         preferences.interests.contains(product.category)
             }
+
+            Log.d("Facultades", "Facultades del usuario: ${preferences.faculties}")
+            Log.d("Intereses", "Intereses del usuario: ${preferences.interests}")
         }
     }
 

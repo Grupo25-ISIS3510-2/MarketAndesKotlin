@@ -1,4 +1,5 @@
 package com.uniandes.marketandes
+import PerfilScreen
 import RegisterScreen
 import UserPreferencesViewModel
 import androidx.compose.foundation.Image
@@ -39,8 +40,14 @@ import com.uniandes.marketandes.ui.preferences.InterestSelectionScreen
 import kotlinx.coroutines.launch
 import android.app.Activity
 import android.content.Intent
+import android.util.Log
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.uniandes.marketandes.ui.user_preferences.PerfilViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -164,6 +171,49 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("pag_home") { PagHome(navController) }
         composable("pag_intercambio") { PagIntercambio() }
         composable("pag_chat") { PagChat(navController) }
+
+        composable("pag_perfil_screen") { PerfilScreen(navController) }
+        composable(
+            route = "edit_faculties?preselected={preselected}",
+            arguments = listOf(navArgument("preselected") {
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val preselected = backStackEntry.arguments?.getString("preselected") ?: ""
+            val preselectedList = if (preselected.isNotEmpty()) preselected.split(",") else emptyList()
+
+            FacultySelectionScreen(
+                navController = navController,
+                viewModel = viewModel(),
+                isEdit = true,
+                preselectedFaculties = preselectedList)
+        }
+
+
+        composable(
+            route = "edit_interests?preselected={preselected}",
+            arguments = listOf(
+                navArgument("preselected") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val preselected = backStackEntry.arguments?.getString("preselected")
+                ?.split(",")
+                ?.filter { it.isNotBlank() } ?: emptyList()
+
+            InterestSelectionScreen(
+                navController = navController,
+                viewModel = viewModel(),
+                isEdit = true,
+                preselectedInterests = preselected,
+
+            )
+        }
+
+
+
         composable("pag_compra") { PagComprar(navController) }
         composable("pag_store_maps") {
             userLocation?.let { location ->
@@ -212,7 +262,12 @@ fun DrawerContent(navController: NavController, onClose: () -> Unit) {
                 .padding(start = 16.dp, top = 40.dp),
             verticalArrangement = Arrangement.Top
         ) {
-            DrawerItem(icon = Icons.Outlined.AccountCircle, text = "Mi perfil")
+            DrawerItem(icon = Icons.Outlined.AccountCircle,text = "Mi perfil",
+                onClick = {
+                    navController.navigate("pag_perfil_screen")
+                    onClose()
+                }
+            )
             DrawerItem(icon = Icons.Outlined.GridView, text = "Mis publicaciones")
             DrawerItem(icon = Icons.Outlined.History, text = "Historial")
             DrawerItem(icon = Icons.Outlined.ShoppingBag, text = "Mis compras")
