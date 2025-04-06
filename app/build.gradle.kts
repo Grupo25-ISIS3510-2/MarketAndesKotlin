@@ -62,6 +62,9 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:2.2.0")
     implementation("com.google.android.gms:play-services-location:17.0.0")
 
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("org.json:json:20210307")
+
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
