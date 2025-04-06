@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
@@ -33,7 +34,7 @@ import com.uniandes.marketandes.ui.authentication.ui.AuthenticationViewModel
 import com.uniandes.marketandes.ui.preferences.FacultySelectionScreen
 import com.uniandes.marketandes.ui.preferences.InterestSelectionScreen
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {

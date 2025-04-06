@@ -1,5 +1,6 @@
 package com.uniandes.marketandes.ui.authentication.ui
 
+import android.content.Context
 import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.LiveData
@@ -9,6 +10,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+
 
 class AuthenticationViewModel : ViewModel() {
 
@@ -32,6 +37,15 @@ class AuthenticationViewModel : ViewModel() {
     private val _loginError = MutableLiveData<String?>()
     val loginError: LiveData<String?> = _loginError
 
+
+    init {
+        val currentUser = auth.currentUser
+        _isAuthenticated.value = currentUser != null
+        Log.d("MarketAndes", "Usuario autenticado al iniciar: ${currentUser?.email}")
+
+    }
+
+
     fun onLoginChange(email: String, password: String) {
         _email.value = email
         _password.value = password
@@ -39,23 +53,31 @@ class AuthenticationViewModel : ViewModel() {
         _loginError.value = null
     }
 
-    fun onLoginSelected(home: () -> Unit)
+    fun onLoginSelected(context: Context, home: () -> Unit)
     {
         _isLoading.value = true
         viewModelScope.launch {
             try
             {
+
+                val sharedPreferences = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                sharedPreferences.edit().putBoolean("usuario_autenticado", true).apply()
+
+
                 auth.signInWithEmailAndPassword(_email.value ?: "", _password.value ?: "")
                     .addOnCompleteListener { task ->
                         _isLoading.value = false
                         if (task.isSuccessful)
                         {
+
                             Log.d("MarketAndesLogin", "signInWithEmailAndPassword: Logueado!!")
 
                             val user = FirebaseAuth.getInstance().currentUser
                             Log.d("MarketAndesLogin", "signInWithEmailAndPassword: ${user?.email}")
                             _isAuthenticated.value = true
                             home()
+                            saveCredentialSafety(context, _email.value ?: "", _password.value ?: "")
+
                         } else
                         {
                             Log.d("MarketAndesLogin", "signInWithEmailAndPassword: ${task.exception?.message}")
@@ -92,16 +114,87 @@ class AuthenticationViewModel : ViewModel() {
     }
 
 
+    fun saveCredentialSafety(context: Context, email: String, password: String)
+    {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        val sharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "credentials",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+
+        sharedPreferences.edit()
+            .putString("email", email)
+            .putString("password", password)
+            .apply()
+
+        Log.d("MarketAndesDebug", "Credenciales guardadas: $email / $password")
 
 
-    fun logout() {
-        auth.signOut()
-        _isAuthenticated.value = false  // 🔴 Asegura que cuando cierre sesión, se actualice el estado
     }
 
-    fun clearError() {
-        _loginError.value = null
+
+    fun getCredentialSafety(context: Context): Pair<String, String>? {
+        val sharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "credentials",
+            MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build(),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+
+        val email = sharedPreferences.getString("email", null)
+        val password = sharedPreferences.getString("password", null)
+
+        Log.d("MarketAndesDebug", "Credenciales obtenidas: $email / $password")
+
+
+        return if (!email.isNullOrBlank() && !password.isNullOrBlank()) {
+            Pair(email, password)
+        } else {
+            null
+        }
     }
+
+
+
+    fun loginWithStoredCredentials(context: Context, home: () -> Unit)
+    {
+        val credentials = getCredentialSafety(context)
+
+        if (credentials != null) {
+            val (email, password) = credentials
+
+            Log.d("MarketAndesDebug", "Intentando login con credenciales almacenadas: $email / $password")
+
+            _isLoading.value = true
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    _isLoading.value = false
+                    if (task.isSuccessful) {
+                        Log.d("MarketAndesLogin", "Login con huella exitoso: $email")
+                        _isAuthenticated.value = true
+                        home()
+                    } else {
+                        Log.e("MarketAndesLogin", "Error en login con huella: ${task.exception?.message}")
+                        _loginError.value = task.exception?.message
+                    }
+                }
+        } else {
+            Log.e("MarketAndesLogin", "No se encontraron credenciales almacenadas")
+            _loginError.value = "No se encontraron credenciales guardadas"
+        }
+    }
+
+
+
 
     private fun isValidEmail(email: String): Boolean =
         Patterns.EMAIL_ADDRESS.matcher(email).matches() && email.endsWith("@uniandes.edu.co")

@@ -1,14 +1,16 @@
 package com.uniandes.marketandes.ui.authentication.ui
 
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -21,9 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -36,18 +38,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.R
 import kotlinx.coroutines.launch
 
 @Composable
 fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavHostController) {
     val isLoading by viewModel.isLoading.observeAsState(false)
-    var viewModelReg = RegistrationViewModel()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+    val currentUser = FirebaseAuth.getInstance().currentUser
 
-    Box(modifier = Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onTap = {keyboardController?.hide()})}) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) { detectTapGestures(onTap = { keyboardController?.hide() }) }
+    ) {
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -63,8 +74,7 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
-                    .imePadding()
-                    .windowInsetsPadding(WindowInsets.ime),
+                    .imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -76,6 +86,26 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
                 Spacer(modifier = Modifier.height(20.dp))
                 Login(Modifier.align(Alignment.CenterHorizontally), viewModel, navController)
                 Spacer(modifier = Modifier.height(20.dp))
+
+                if (currentUser == null) {
+                    Button(
+                        onClick = {
+                            (context as? FragmentActivity)?.let { activity ->
+                                showBiometricPrompt(activity, viewModel){
+                                    navController.navigate("pag_home") {
+                                        popUpTo("authentication") { inclusive = true }
+                                    }
+                                }
+
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF001F5B))
+                    ) {
+                        Text("Iniciar con Huella", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(25.dp))
                 Text(
                     text = "¡Al hacer clic en 'Iniciar sesión', aceptas el tratamiento de tus datos para ofrecerte una mejor experiencia!",
                     fontSize = 16.sp,
@@ -86,27 +116,9 @@ fun AuthenticationScreen(viewModel: AuthenticationViewModel, navController: NavH
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(25.dp))
-                Register(viewModelReg, navController)
+                RegistrationButton(navController)
             }
         }
-    }
-    val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
-
-    Log.d("NavController", "Destino actual: $currentDestination")
-}
-
-@Composable
-fun Register(viewModelReg: RegistrationViewModel, navController: NavHostController) {
-    val registerEnable by viewModelReg.registerEnable.observeAsState(false)
-    val coroutineScope = rememberCoroutineScope()
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Spacer(modifier = Modifier.height(16.dp))
-
-        RegistrationButton(registerEnable, navController)
     }
 }
 
@@ -117,8 +129,8 @@ fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController:
     val loginEnable by viewModel.loginEnable.observeAsState(false)
     val loginError by viewModel.loginError.observeAsState(null)
     val coroutineScope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current // Manejo de foco
-
+    val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     Column(
         modifier = modifier,
@@ -129,10 +141,9 @@ fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController:
         Spacer(modifier = Modifier.height(16.dp))
         PasswordField(password, { viewModel.onLoginChange(email, it) }, focusManager)
 
-        if (loginError != null)
-        {
+        loginError?.let {
             Text(
-                text = loginError!!,
+                text = it,
                 color = Color.Red,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
@@ -140,37 +151,73 @@ fun Login(modifier: Modifier, viewModel: AuthenticationViewModel, navController:
             )
         }
 
-
-
-
         Spacer(modifier = Modifier.height(8.dp))
         ForgotPassword(viewModel)
         Spacer(modifier = Modifier.height(40.dp))
         LoginButton(loginEnable) {
-            coroutineScope.launch { viewModel.onLoginSelected {navController.navigate("pag_home")} }
+            coroutineScope.launch {
+                viewModel.onLoginSelected(context) {
+                    navController.navigate("pag_home")
+                }
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegistrationButton(registerEnable: Boolean, navController: NavHostController) {
+fun EmailField(email: String, onTextFieldChanged: (String) -> Unit, focusManager: FocusManager) {
+    TextField(
+        value = email,
+        onValueChange = { onTextFieldChanged(it) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 31.dp),
+        placeholder = { Text("Correo electrónico Uniandes") },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Email,
+            imeAction = ImeAction.Next
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+        ),
+        singleLine = true,
+        colors = TextFieldDefaults.textFieldColors()
+    )
+}
 
-    navController.addOnDestinationChangedListener { controller, destination, arguments ->
-        Log.d("NavController", "Navegando a: ${destination.route}")
-    }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PasswordField(password: String, onTextFieldChanged: (String) -> Unit, focusManager: FocusManager) {
+    var passwordVisible by remember { mutableStateOf(false) }
 
-    TextButton(
-        onClick = {  // Elimina la pantalla actual del stack
-            navController.navigate("register") }, // Aquí usamos la función pasada como parámetro
-    ) {
-        Text(
-            "¿Primera vez? Regístrate aquí",
-            color = Color(0xFF001F5B),
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            textDecoration = TextDecoration.Underline
-        )
-    }
+    TextField(
+        value = password,
+        onValueChange = { onTextFieldChanged(it) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 31.dp),
+        placeholder = { Text("Contraseña") },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() }
+        ),
+        singleLine = true,
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    painter = painterResource(id = if (passwordVisible) R.drawable.vista else R.drawable.visible),
+                    contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        },
+        colors = TextFieldDefaults.textFieldColors()
+    )
 }
 
 @Composable
@@ -198,69 +245,23 @@ fun LoginButton(loginEnable: Boolean, onLoginSelected: () -> Unit) {
             )
         }
     }
-    Spacer(modifier = Modifier.height(16.dp))
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun PasswordField(password: String, onTextFieldChanged: (String) -> Unit, focusManager: FocusManager) {
-    var passwordVisible = remember { mutableStateOf(false) }
-
-    TextField(
-        value = password,
-        onValueChange = { onTextFieldChanged(it) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 31.dp),
-        placeholder = { Text("Contraseña") },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Done
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = { focusManager.clearFocus() }
-        ),
-        singleLine = true,
-        visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
-                Icon(
-                    painter = painterResource(id = if (passwordVisible.value) R.drawable.vista else R.drawable.visible),
-                    contentDescription = if (passwordVisible.value) "Ocultar contraseña" else "Mostrar contraseña",
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        },
-        colors = TextFieldDefaults.textFieldColors()
-    )
-}
-
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-fun EmailField(email: String, onTextFieldChanged: (String) -> Unit, focusManager: FocusManager) {
-    TextField(
-        value = email,
-        onValueChange = { onTextFieldChanged(it) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 31.dp),
-        placeholder = { Text("Correo electrónico Uniandes") },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Email,
-            imeAction = ImeAction.Next
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-        ),
-        singleLine = true,
-        colors = TextFieldDefaults.textFieldColors()
-    )
+fun RegistrationButton(navController: NavHostController) {
+    TextButton(onClick = { navController.navigate("register") }) {
+        Text(
+            "¿Primera vez? Regístrate aquí",
+            color = Color(0xFF001F5B),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            textDecoration = TextDecoration.Underline
+        )
+    }
 }
 
 @Composable
-fun ForgotPassword(viewModel: AuthenticationViewModel)
-{
+fun ForgotPassword(viewModel: AuthenticationViewModel) {
     Text(
         text = "¿Olvidaste tu contraseña?",
         modifier = Modifier.clickable {
@@ -270,4 +271,69 @@ fun ForgotPassword(viewModel: AuthenticationViewModel)
         color = Color(0xFF001F5B),
         fontWeight = FontWeight.Bold
     )
+}
+
+fun showBiometricPrompt(activity: FragmentActivity,viewModel: AuthenticationViewModel,onSuccess: () -> Unit)
+{
+    val biometricManager = BiometricManager.from(activity)
+    when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+        BiometricManager.BIOMETRIC_SUCCESS -> {
+            val executor = ContextCompat.getMainExecutor(activity)
+            val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Autenticación con huella")
+                .setSubtitle("Usa tu huella para acceder")
+                .setNegativeButtonText("Cancelar")
+                .setConfirmationRequired(true)
+                .build()
+
+            val biometricPrompt = BiometricPrompt(
+                activity,
+                executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        super.onAuthenticationSucceeded(result)
+
+                        val credenciales = viewModel.getCredentialSafety(activity)
+                        if (credenciales != null) {
+                            val (email, password) = credenciales
+                            FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        Toast.makeText(activity, "Autenticación exitosa", Toast.LENGTH_SHORT).show()
+                                        viewModel.loginWithStoredCredentials(activity) {
+                                            Toast.makeText(activity, "Autenticación exitosa", Toast.LENGTH_SHORT).show()
+                                            onSuccess()
+                                        }
+                                    } else {
+                                        Toast.makeText(
+                                            activity,
+                                            "Error al iniciar sesión: ${task.exception?.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
+                        } else {
+                            Toast.makeText(activity, "No se encontraron credenciales guardadas", Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        super.onAuthenticationError(errorCode, errString)
+                        Toast.makeText(activity, "Error: $errString", Toast.LENGTH_SHORT).show()
+                    }
+
+                    override fun onAuthenticationFailed() {
+                        super.onAuthenticationFailed()
+                        Toast.makeText(activity, "Huella no reconocida", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+            biometricPrompt.authenticate(promptInfo)
+        }
+
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> Toast.makeText(activity, "Tu dispositivo no tiene sensor biométrico", Toast.LENGTH_LONG).show()
+        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> Toast.makeText(activity, "El sensor biométrico no está disponible", Toast.LENGTH_LONG).show()
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> Toast.makeText(activity, "No tienes huellas registradas", Toast.LENGTH_LONG).show()
+        else -> Toast.makeText(activity, "Biometría no disponible", Toast.LENGTH_LONG).show()
+    }
 }

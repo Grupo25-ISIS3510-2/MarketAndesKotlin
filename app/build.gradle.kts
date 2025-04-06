@@ -88,6 +88,12 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.firebase.auth.ktx)
 
+    //Datos biometricos
+    implementation ("androidx.biometric:biometric:1.1.0")
+    implementation ("androidx.security:security-crypto:1.1.0-alpha06")
+
+
+
     implementation(libs.androidx.credentials)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
