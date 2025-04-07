@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import androidx.navigation.NavHostController
 import java.net.URLDecoder
+import java.net.URLEncoder
 
 @Composable
 fun UbicacionDetail (navController: NavHostController) {
@@ -47,6 +48,22 @@ fun UbicacionDetail (navController: NavHostController) {
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00296B))
         ) {
             Text("Volver", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                navController.navigate(
+                    "storemaps?destinoNombre=${URLEncoder.encode(nombreUbicacionDecoded, "UTF-8")}&destinoImagen=${URLEncoder.encode(imagenUrlDecoded, "UTF-8")}"
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A9396))
+        ) {
+            Text("Ir", color = Color.White)
         }
     }
 }

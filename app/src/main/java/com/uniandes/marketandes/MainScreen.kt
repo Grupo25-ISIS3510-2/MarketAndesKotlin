@@ -189,6 +189,19 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
                 preselectedFaculties = preselectedList)
         }
 
+        composable(
+            route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}",
+            arguments = listOf(
+                navArgument("destinoNombre") { defaultValue = ""; nullable = true },
+                navArgument("destinoImagen") { defaultValue = ""; nullable = true }
+            )
+        ) { backStackEntry ->
+            val destinoNombre = backStackEntry.arguments?.getString("destinoNombre")
+            val destinoImagen = backStackEntry.arguments?.getString("destinoImagen")
+            PagStoreMaps(navController, destinoNombre, destinoImagen)
+        }
+
+
 
         composable(
             route = "edit_interests?preselected={preselected}",

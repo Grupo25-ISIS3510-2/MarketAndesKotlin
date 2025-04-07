@@ -29,6 +29,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import android.util.Log
 import androidx.compose.ui.graphics.Color
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -47,13 +48,15 @@ fun GetUserLocation(onLocationRetrieved: (LatLng) -> Unit) {
 }
 
 @Composable
-fun PagStoreMaps(navController: NavHostController) {
+fun PagStoreMaps(navController: NavHostController, destinoNombre: String? = null, destinoImagen: String? = null) {
+
 
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var hasPermission by remember { mutableStateOf(false) }
     var map by remember { mutableStateOf<com.google.android.gms.maps.GoogleMap?>(null) }
+
 
     RequestLocationPermission {
         hasPermission = true
@@ -103,6 +106,10 @@ fun PagStoreMaps(navController: NavHostController) {
         )
     )
 
+    val decodedDestinoNombre = destinoNombre?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+    val puntoDestino = recommendedStore.find { it.nombreUbicacion == decodedDestinoNombre }
+
+
     LaunchedEffect(mapView) {
         mapView.onCreate(Bundle())
         mapView.onResume()
@@ -131,7 +138,33 @@ fun PagStoreMaps(navController: NavHostController) {
             }
 
             userLocation?.let { location ->
-                googleMap.addMarker(MarkerOptions().position(location).title("Mi ubicación"))
+                if (userLocation != null && puntoDestino != null) {
+                    // Marcar destino
+                    map?.addMarker(
+                        MarkerOptions()
+                            .position(puntoDestino.latLng)
+                            .title("Destino: ${puntoDestino.nombreUbicacion}")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                    )
+
+                    // Mover la cámara para que quepan ambos puntos (ubicación + destino)
+                    val bounds = com.google.android.gms.maps.model.LatLngBounds.builder()
+                        .include(userLocation!!)
+                        .include(puntoDestino.latLng)
+                        .build()
+                    map?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150))
+
+                    // Línea entre ubicación y destino
+                    map?.addPolyline(
+                        com.google.android.gms.maps.model.PolylineOptions()
+                            .add(userLocation, puntoDestino.latLng)
+                            .color(android.graphics.Color.BLUE)
+                            .width(10f)
+                    )
+                }
+
+                googleMap.addMarker(MarkerOptions().position(location).title("Mi ubicación").icon(
+                    BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)))
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
             } ?: run {
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(recommendedStore[0].latLng, 15f))
@@ -139,12 +172,7 @@ fun PagStoreMaps(navController: NavHostController) {
         }
     }
 
-    LaunchedEffect(userLocation) {
-        userLocation?.let { location ->
-            map?.addMarker(MarkerOptions().position(location).title("Mi ubicación"))
-            map?.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
-        }
-    }
+
 
     Column(
         modifier = Modifier
