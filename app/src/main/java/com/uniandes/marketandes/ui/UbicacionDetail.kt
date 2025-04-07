@@ -1,4 +1,6 @@
 package com.uniandes.marketandes.ui
+import android.os.Bundle
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -8,8 +10,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 import coil.compose.rememberAsyncImagePainter
 import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -18,9 +24,9 @@ fun UbicacionDetail (navController: NavHostController) {
     val backStackEntry = navController.currentBackStackEntry
     val nombreUbicacion = backStackEntry?.arguments?.getString("nombreUbicacion") ?: "Ubicación no disponible"
     val imagenUrl = backStackEntry?.arguments?.getString("imagenUrl") ?: ""
-
     val nombreUbicacionDecoded = URLDecoder.decode(nombreUbicacion, "UTF-8")
     val imagenUrlDecoded = URLDecoder.decode(imagenUrl, "UTF-8")
+
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -54,6 +60,22 @@ fun UbicacionDetail (navController: NavHostController) {
 
         Button(
             onClick = {
+                val firestore = FirebaseFirestore.getInstance()
+                val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "anonimo"
+
+                val clickData = hashMapOf(
+                    "tienda_nombre" to nombreUbicacionDecoded,
+                    "imagen_url" to imagenUrlDecoded,
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "user_id" to userId
+                )
+
+                firestore.collection("clics_ir_tienda")
+                    .add(clickData)
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "Evento guardado")
+                    }
+
                 navController.navigate(
                     "storemaps?destinoNombre=${URLEncoder.encode(nombreUbicacionDecoded, "UTF-8")}&destinoImagen=${URLEncoder.encode(imagenUrlDecoded, "UTF-8")}"
                 )
