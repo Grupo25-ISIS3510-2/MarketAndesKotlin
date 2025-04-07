@@ -11,15 +11,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material.icons.Icons
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.model.Message
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uniandes.marketandes.viewModel.ChatDetailViewModel
+import com.uniandes.marketandes.viewModel.ChatDetailViewModelFactory
+import com.uniandes.marketandes.repository.ChatRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -27,7 +31,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatDetailScreen(chatId: String, navController: NavHostController, viewModel: ChatDetailViewModel = remember { ChatDetailViewModel() }) {
+fun ChatDetailScreen(chatId: String, navController: NavHostController) {
+    val repository = ChatRepository(FirebaseFirestore.getInstance())  // Inicializa el repositorio
+    val viewModel: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(repository))  // Usa ViewModelFactory
+
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserUID = currentUser?.uid ?: ""
 
