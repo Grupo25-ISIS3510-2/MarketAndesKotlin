@@ -1,12 +1,10 @@
-package com.uniandes.marketandes.viewmodel
+package com.uniandes.marketandes.viewModel
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.model.Message
-import kotlinx.coroutines.launch
 
 class ChatDetailViewModel : ViewModel() {
     val messages = mutableStateOf<List<Message>>(emptyList())
@@ -14,11 +12,34 @@ class ChatDetailViewModel : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
 
-    fun sendMessage(chatId: String, currentUserUID: String) {
+    fun fetchMessages(chatId: String) {
+        db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("timestamp")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("Firestore", "Error al escuchar cambios en los mensajes", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    messages.value = snapshot.documents.map {
+                        Message(
+                            text = it.getString("text") ?: "",
+                            senderId = it.getString("senderId") ?: "",
+                            timestamp = it.getLong("timestamp") ?: 0L
+                        )
+                    }
+                }
+            }
+    }
+
+    fun sendMessage(chatId: String, userUID: String) {
         if (message.value.isNotEmpty()) {
             val newMessage = hashMapOf(
                 "text" to message.value,
-                "senderId" to currentUserUID,
+                "senderId" to userUID,
                 "timestamp" to System.currentTimeMillis()
             )
 
@@ -28,7 +49,7 @@ class ChatDetailViewModel : ViewModel() {
                 .add(newMessage)
                 .addOnSuccessListener {
                     Log.d("Firestore", "Mensaje enviado con éxito")
-                    updateLastMessage(chatId)
+                    updateLastMessage(chatId, message.value)
                 }
                 .addOnFailureListener { e ->
                     Log.w("Firestore", "Error al enviar el mensaje", e)
@@ -37,10 +58,8 @@ class ChatDetailViewModel : ViewModel() {
         }
     }
 
-    private fun updateLastMessage(chatId: String) {
-        val lastMessageUpdate = mutableMapOf<String, Any>(
-            "lastMessage" to message.value
-        )
+    private fun updateLastMessage(chatId: String, lastMessageText: String) {
+        val lastMessageUpdate = mapOf<String, Any>("lastMessage" to lastMessageText)
 
         db.collection("chats")
             .document(chatId)
@@ -51,27 +70,5 @@ class ChatDetailViewModel : ViewModel() {
             .addOnFailureListener { e ->
                 Log.w("Firestore", "Error al actualizar el último mensaje", e)
             }
-    }
-
-    fun fetchMessages(chatId: String) {
-        viewModelScope.launch {
-            db.collection("chats")
-                .document(chatId)
-                .collection("messages")
-                .orderBy("timestamp")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    messages.value = snapshot.documents.map {
-                        Message(
-                            text = it.getString("text") ?: "",
-                            senderId = it.getString("senderId") ?: "",
-                            timestamp = it.getLong("timestamp") ?: 0L
-                        )
-                    }
-                }
-                .addOnFailureListener { e ->
-                    Log.w("Firestore", "Error al cargar los mensajes", e)
-                }
-        }
     }
 }

@@ -1,6 +1,5 @@
 package com.uniandes.marketandes.view
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,131 +11,81 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material.icons.Icons
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.model.Message
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.Send
+import com.uniandes.marketandes.viewModel.ChatDetailViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatDetailScreen(chatId: String, navController: NavHostController) {
+fun ChatDetailScreen(chatId: String, navController: NavHostController, viewModel: ChatDetailViewModel = remember { ChatDetailViewModel() }) {
     val currentUser = FirebaseAuth.getInstance().currentUser
-    val db = FirebaseFirestore.getInstance()
+    val currentUserUID = currentUser?.uid ?: ""
 
-    var message by remember { mutableStateOf("") }
-    var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
+    val messages by viewModel.messages
+    val message by viewModel.message
 
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(chatId) {
-        db.collection("chats")
-            .document(chatId)
-            .collection("messages")
-            .orderBy("timestamp")
-            .addSnapshotListener { snapshot, error ->
-                if (snapshot != null) {
-                    messages = snapshot.documents.map {
-                        Message(
-                            text = it.getString("text") ?: "",
-                            senderId = it.getString("senderId") ?: "",
-                            timestamp = it.getLong("timestamp") ?: 0L
-                        )
-                    }
-                    coroutineScope.launch {
-                        scrollState.animateScrollToItem(messages.size - 1)
-                    }
-                }
+        viewModel.fetchMessages(chatId)
+    }
+
+    LaunchedEffect(messages) {
+        if (messages.isNotEmpty()) {
+            coroutineScope.launch {
+                scrollState.animateScrollToItem(messages.size - 1)
             }
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         LazyColumn(state = scrollState, modifier = Modifier.weight(1f)) {
             items(messages) { message ->
-                MessageBubble(message = message, currentUserUID = currentUser?.uid ?: "")
+                MessageBubble(message = message, currentUserUID = currentUserUID)
             }
         }
-
-        TextField(
-            value = message,
-            onValueChange = { newMessage -> message = newMessage },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFF1F1F1)),
-            placeholder = { Text(text = "Escribe tu mensaje...") },
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color(0xFFF1F1F1),
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 3.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = {
-                    navController.popBackStack()
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00296B))
-            ) {
-                Text("Volver", color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Button(
-                onClick = {
-                    if (message.isNotEmpty()) {
-                        val newMessage = hashMapOf(
-                            "text" to message,
-                            "senderId" to currentUser?.uid,
-                            "timestamp" to System.currentTimeMillis()
-                        )
-
-                        db.collection("chats")
-                            .document(chatId)
-                            .collection("messages")
-                            .add(newMessage)
-                            .addOnSuccessListener { documentReference ->
-                                Log.d("Firestore", "Mensaje enviado con éxito")
-
-                                val lastMessageUpdate = mutableMapOf<String, Any>(
-                                    "lastMessage" to message,
-                                )
-
-                                db.collection("chats")
-                                    .document(chatId)
-                                    .update(lastMessageUpdate)
-                                    .addOnSuccessListener {
-                                        Log.d("Firestore", "Último mensaje actualizado con éxito")
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.w("Firestore", "Error al actualizar el último mensaje", e)
-                                    }
-                            }
-                            .addOnFailureListener { e ->
-                                Log.w("Firestore", "Error al enviar el mensaje", e)
-                            }
-                        message = ""
+            TextField(
+                value = message,
+                onValueChange = { viewModel.message.value = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color(0xFFF1F1F1), shape = RoundedCornerShape(24.dp)),
+                placeholder = { Text(text = "Escribe tu mensaje...") },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        viewModel.sendMessage(chatId, currentUserUID)
+                    }) {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "Enviar")
                     }
                 },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00296B))
-            ) {
-                Text("Enviar", color = Color.White)
-            }
+                colors = TextFieldDefaults.textFieldColors(
+                    containerColor = Color(0xFFF1F1F1),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+            )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
@@ -146,6 +95,8 @@ fun MessageBubble(message: Message, currentUserUID: String) {
     val backgroundColor = if (isCurrentUser) Color(0xFFFDC500) else Color(0xFF00509D)
     val textColor = if (isCurrentUser) Color.Black else Color.White
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
+
+    val formattedTime = formatTimestamp(message.timestamp)
 
     Row(
         modifier = Modifier
@@ -164,6 +115,18 @@ fun MessageBubble(message: Message, currentUserUID: String) {
                 fontWeight = FontWeight.Normal,
                 color = textColor
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formattedTime,
+                fontSize = 10.sp,
+                color = textColor.copy(alpha = 0.7f)
+            )
         }
     }
+}
+
+fun formatTimestamp(timestamp: Long): String {
+    val date = Date(timestamp)
+    val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+    return formatter.format(date)
 }

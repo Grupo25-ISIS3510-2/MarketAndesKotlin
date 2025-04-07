@@ -18,10 +18,8 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.*
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.GeoPoint
 import com.uniandes.marketandes.R
-import com.uniandes.marketandes.model.PuntoDeInteres
+import com.uniandes.marketandes.viewModel.PagChatMapViewModel
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,30 +28,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun PagChatMap(chatId: String, navController: NavHostController) {
+fun PagChatMap(
+    chatId: String,
+    navController: NavHostController,
+    viewModel: PagChatMapViewModel = remember { PagChatMapViewModel() }
+) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
     val googleMap = remember { mutableStateOf<GoogleMap?>(null) }
     val scope = rememberCoroutineScope()
 
-    val puntosDeInteres = listOf(
-        PuntoDeInteres(LatLng(4.603100641251616, -74.06514973706602), "Entrada del ML", "..."),
-        PuntoDeInteres(LatLng(4.601203630411922, -74.06556084750304), "El bobo", "..."),
-        PuntoDeInteres(LatLng(4.602659914804456, -74.06631365426061), "Primer piso del Aulas", "...")
-    )
-
-    var userLocations by remember { mutableStateOf<Map<String, GeoPoint>>(emptyMap()) }
-    var puntoSugerido by remember { mutableStateOf<PuntoDeInteres?>(null) }
+    val userLocations by viewModel.userLocations
+    val puntoSugerido by viewModel.puntoSugerido
+    val distanciaPromedio by viewModel.distanciaPromedio
 
     LaunchedEffect(chatId) {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("chats").document(chatId).get()
-            .addOnSuccessListener { doc ->
-                @Suppress("UNCHECKED_CAST")
-                val locs = doc.get("userLocations") as? Map<String, GeoPoint>
-                if (locs != null) userLocations = locs
-            }
-            .addOnFailureListener { e -> Log.w("PagChatMap", "Error userLocations: $e") }
+        viewModel.fetchUserLocations(chatId)
     }
 
     LaunchedEffect(mapView) {
@@ -73,19 +63,7 @@ fun PagChatMap(chatId: String, navController: NavHostController) {
             googleMap.value = map
             map.clear()
 
-            val coords = userLocations.values.map { LatLng(it.latitude, it.longitude) }
-            val sugerido = if (userLocations.size == 2) {
-                puntosDeInteres.minByOrNull { punto ->
-                    val distancias = coords.map { user -> distanciaEntre(user, punto.latLng) }
-                    distancias.sum()
-                }
-            } else {
-                null
-            }
-
-            puntoSugerido = sugerido
-
-            userLocations.forEach { (uid, geoPoint) ->
+            userLocations.forEach { (_, geoPoint) ->
                 val pos = LatLng(geoPoint.latitude, geoPoint.longitude)
                 map.addMarker(
                     MarkerOptions()
@@ -95,24 +73,27 @@ fun PagChatMap(chatId: String, navController: NavHostController) {
                 )
             }
 
-            puntosDeInteres.forEach {
-                val markerOptions = MarkerOptions()
-                    .position(it.latLng)
-                    .title(
-                        if (it == sugerido) "Punto de encuentro sugerido: ${it.nombreUbicacion}"
-                        else it.nombreUbicacion
-                    )
-                    .icon(
-                        if (it == sugerido)
-                            BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
-                        else
-                            BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
-                    )
-
-                map.addMarker(markerOptions)
+            viewModel.puntos.forEach { punto ->
+                val isSugerido = puntoSugerido?.latLng == punto.latLng
+                map.addMarker(
+                    MarkerOptions()
+                        .position(punto.latLng)
+                        .title(
+                            if (isSugerido)
+                                "Punto de encuentro sugerido: ${punto.nombreUbicacion}"
+                            else
+                                punto.nombreUbicacion
+                        )
+                        .icon(
+                            if (isSugerido)
+                                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                            else
+                                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+                        )
+                )
             }
 
-            sugerido?.let {
+            puntoSugerido?.let {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(it.latLng, 16f))
 
                 val currentUser = FirebaseAuth.getInstance().currentUser?.uid
@@ -120,15 +101,10 @@ fun PagChatMap(chatId: String, navController: NavHostController) {
                     userLocations[uid]?.let { LatLng(it.latitude, it.longitude) }
                 }
 
-                if (userPoint != null) {
+                userPoint?.let {
                     scope.launch {
                         try {
-                            val ruta = fetchRoute(
-                                userPoint,
-                                it.latLng,
-                                context.getString(R.string.api_key)
-                            )
-
+                            val ruta = fetchRoute(userPoint, puntoSugerido!!.latLng, context.getString(R.string.api_key))
                             map.addPolyline(
                                 PolylineOptions()
                                     .addAll(ruta)
@@ -136,17 +112,22 @@ fun PagChatMap(chatId: String, navController: NavHostController) {
                                     .width(10f)
                             )
                         } catch (e: Exception) {
+                            Log.w("PagChatMap", "Error obteniendo ruta: $e")
                         }
                     }
-                } else {
                 }
             }
         }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
+        val textoDistancia = distanciaPromedio?.let {
+            val metros = it.toInt()
+            " ($metros m promedio)"
+        } ?: ""
+
         Text(
-            text = puntoSugerido?.nombreUbicacion?.let { "Punto de encuentro sugerido: $it" }
+            text = puntoSugerido?.nombreUbicacion?.let { "Punto sugerido: $it$textoDistancia" }
                 ?: "Selecciona un punto de encuentro",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -173,13 +154,9 @@ suspend fun fetchRoute(origin: LatLng, destination: LatLng, apiKey: String): Lis
         val response = httpClient.newCall(request).execute()
 
         val bodyString = response.body?.string()
-        if (bodyString == null) {
-            throw Exception("Cuerpo vacío")
-        }
+        if (bodyString == null) throw Exception("Cuerpo vacío")
+        if (!response.isSuccessful) throw Exception("Error en solicitud Directions API")
 
-        if (!response.isSuccessful) {
-            throw Exception("Error en solicitud Directions API")
-        }
         parseRoute(bodyString)
     }
 }
@@ -227,14 +204,4 @@ fun decodePolyline(encoded: String): List<LatLng> {
     }
 
     return poly
-}
-
-fun distanciaEntre(p1: LatLng, p2: LatLng): Double {
-    val res = FloatArray(1)
-    android.location.Location.distanceBetween(
-        p1.latitude, p1.longitude,
-        p2.latitude, p2.longitude,
-        res
-    )
-    return res[0].toDouble()
 }
