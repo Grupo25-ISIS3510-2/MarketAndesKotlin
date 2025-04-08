@@ -34,7 +34,9 @@ fun PagComprar(navController: NavHostController) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -44,18 +46,16 @@ fun PagComprar(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Usando LazyVerticalGrid con 2 columnas
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2), // Especificamos que queremos 2 columnas
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize()
         ) {
             items(productos) { producto ->
-                ProductCard(product = producto, navController)
+                ProductCard(product = producto, navController = navController)
             }
         }
     }
 }
-
 
 @Composable
 fun ProductCard(product: Product, navController: NavHostController) {
@@ -63,7 +63,7 @@ fun ProductCard(product: Product, navController: NavHostController) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable { navController.navigate("detalle_compra/${product.name}") } // Agregado aquí
+            .clickable { navController.navigate("detalle_compra/${product.id}") }
     ) {
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
@@ -79,8 +79,7 @@ fun ProductCard(product: Product, navController: NavHostController) {
             text = product.name,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(top = 4.dp)
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         Box(
@@ -102,11 +101,11 @@ fun ProductCard(product: Product, navController: NavHostController) {
     }
 }
 
-
 suspend fun getProductsFromFirestore(db: FirebaseFirestore): List<Product> {
     return try {
         val snapshot = db.collection("products").get().await()
         snapshot.documents.mapNotNull { doc ->
+            val id = doc.id
             val name = doc.getString("name") ?: "Sin nombre"
             val price = doc.getLong("price")?.toInt() ?: 0
             val imageURL = doc.getString("imageURL") ?: "Sin imagen"
@@ -114,18 +113,28 @@ suspend fun getProductsFromFirestore(db: FirebaseFirestore): List<Product> {
             val description = doc.getString("description") ?: "Sin descripción"
             val sellerID = doc.getString("sellerID") ?: "Sin vendedor"
             val sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
-            val comments = getCommentsForProduct(db, name)
-            Product(name, price, imageURL, category, description, sellerID, sellerRating, comments )
+            val comments = getCommentsForProduct(db, id)
+            Product(
+                id = doc.id,
+                name = name,
+                price = price,
+                imageURL = imageURL,
+                category = category,
+                description = description,
+                sellerID = sellerID,
+                sellerRating = sellerRating,
+                comments = comments
+            )
         }
     } catch (e: Exception) {
         emptyList()
     }
 }
 
-suspend fun getCommentsForProduct(db: FirebaseFirestore, name: String): List<Comment> {
+suspend fun getCommentsForProduct(db: FirebaseFirestore, id: String): List<Comment> {
     return try {
         val commentsSnapshot = db.collection("products")
-            .document(name)
+            .document(id)
             .collection("comments")
             .get()
             .await()
@@ -146,6 +155,7 @@ data class Comment(
 )
 
 data class Product(
+    val id: String,
     val name: String,
     val price: Int,
     val imageURL: String,
@@ -153,5 +163,5 @@ data class Product(
     val description: String,
     val sellerID: String,
     val sellerRating: Int,
-    val comments: List<Comment>
+    val comments: List<Comment> = emptyList()
 )

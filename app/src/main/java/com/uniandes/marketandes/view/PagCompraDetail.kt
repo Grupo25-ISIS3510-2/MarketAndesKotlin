@@ -1,5 +1,9 @@
 package com.uniandes.marketandes.view
 
+import android.content.Context
+import android.media.MediaPlayer
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,22 +21,65 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.auth.FirebaseAuth
+import com.uniandes.marketandes.R
+import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 @Composable
-fun PagCompraDetail(navController: NavHostController, productName: String) {
+fun PagCompraDetail(
+    navController: NavHostController,
+    productId: String,
+    favoritosViewModel: FavoritosViewModel = viewModel()
+) {
     var product by remember { mutableStateOf<Product?>(null) }
+    var favoritoGuardado by remember { mutableStateOf(false) }
     val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
 
-    LaunchedEffect(productName) {
-        product = getProductDetails(db, productName)
+    LaunchedEffect(productId) {
+        product = getProductDetails(db, productId)
+
+        product?.let {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser != null) {
+                val favRef = db.collection("users")
+                    .document(currentUser.uid)
+                    .collection("favoritos")
+                    .document(productId)
+
+                try {
+                    val favDoc = favRef.get().await()
+                    Log.d("Firebase", "Favorito existe: ${favDoc.exists()}")
+
+                    if (favDoc.exists()) {
+                        val updateMap = mapOf("fechaUltimaVisita" to System.currentTimeMillis())
+                        val fecha = Date(updateMap["fechaUltimaVisita"] as Long)
+                        Log.d("Firebase", "Fecha de última visita: $fecha")
+                        favRef.set(updateMap, SetOptions.merge()).await()
+                        Log.d("Firebase", "Fecha de última visita actualizada con: $updateMap")
+                    } else {
+                        Log.d("Firebase", "No se encontró el favorito, no se actualiza fecha.")
+                    }
+                } catch (e: Exception) {
+                    Log.e("Firebase", "Error al actualizar fechaUltimaVisita", e)
+                }
+            } else {
+                Log.e("Firebase", "Usuario no autenticado")
+            }
+        }
     }
+
 
     product?.let {
         Column(
@@ -49,20 +96,19 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
                 IconButton(
                     onClick = { navController.popBackStack() },
                     modifier = Modifier
-                        .background(Color (0xFF002D6A), shape = CircleShape)
-                        .padding(12.dp) //
+                        .background(Color(0xFF002D6A), shape = CircleShape)
+                        .padding(12.dp)
                         .size(24.dp)
-
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Volver",
                         tint = Color.White,
-                        modifier = Modifier
-                                .size(42.dp)
+                        modifier = Modifier.size(42.dp)
                     )
                 }
             }
+
             // Imagen del producto con navegación
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -70,10 +116,7 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(onClick = { /* Acción para imagen anterior */ }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Anterior"
-                    )
+                    Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Anterior")
                 }
                 Image(
                     painter = rememberAsyncImagePainter(it.imageURL),
@@ -85,10 +128,7 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
                         .clip(RoundedCornerShape(8.dp))
                 )
                 IconButton(onClick = { /* Acción para imagen siguiente */ }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "Siguiente"
-                    )
+                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Siguiente")
                 }
             }
 
@@ -122,15 +162,13 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
                 )
             }
 
-
-            // Descripcion del producto
+            // Descripción del producto
             Text(
                 text = it.description,
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp)
             )
-
 
             // Botones de acción
             Row(
@@ -139,14 +177,42 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
                     .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                val favoritos by favoritosViewModel.productosFavoritos.collectAsState()
+                val yaEsFavorito = favoritos.any { fav -> fav.id == it.id }
+
                 Button(
-                    onClick = { /* Acción de compra */ },
-                    colors = ButtonDefaults.buttonColors(Color(0xFFFFC107)),
+                    onClick = {
+                        favoritosViewModel.toggleFavorito(it)
+                        favoritoGuardado = !yaEsFavorito
+
+                        // Sonido si se guarda en favoritos
+                        if (!yaEsFavorito) {
+                            val mediaPlayer = MediaPlayer.create(context, R.raw.add_favorite)
+                            mediaPlayer.start()
+                            mediaPlayer.setOnCompletionListener {
+                                it.release()
+                            }
+                        }
+
+                        Toast.makeText(
+                            context,
+                            if (yaEsFavorito) "Eliminado de favoritos" else "Guardado en favoritos",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (yaEsFavorito) Color(0xFFD32F2F) else Color(0xFFFFC107)
+                    ),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Comprar", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (yaEsFavorito) "Eliminar de favoritos" else "Guardar en favoritos",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { /* Acción para contactar */ },
@@ -162,7 +228,9 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
@@ -209,7 +277,6 @@ fun PagCompraDetail(navController: NavHostController, productName: String) {
                     )
                 }
             }
-
         }
     } ?: CircularProgressIndicator(modifier = Modifier.padding(16.dp))
 }
@@ -231,27 +298,35 @@ fun CommentItem(comment: Comment) {
     }
 }
 
-suspend fun getProductDetails(db: FirebaseFirestore, name: String): Product? {
+suspend fun getProductDetails(db: FirebaseFirestore, productId: String): Product? {
     return try {
-        val snapshot = db.collection("products")
-            .whereEqualTo("name", name)
+        Log.d("Firebase", "Buscando producto con ID: $productId")
+
+        val doc = db.collection("products")
+            .document(productId)
             .get()
             .await()
 
-        snapshot.documents.firstOrNull()?.let { doc ->
-            Product(
+        if (doc.exists()) {
+            val product = Product(
+                id = doc.id,
                 name = doc.getString("name") ?: "",
                 price = doc.getLong("price")?.toInt() ?: 0,
                 imageURL = doc.getString("imageURL") ?: "",
                 category = doc.getString("category") ?: "",
-                description = doc.getString("description")?: "Sin descripción",
+                description = doc.getString("description") ?: "Sin descripción",
                 sellerID = doc.getString("sellerID") ?: "",
                 sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0,
                 comments = getCommentsForProduct(db, doc.id)
-
             )
+            Log.d("Firebase", "Producto encontrado: $product")
+            product
+        } else {
+            Log.d("Firebase", "No se encontró el documento")
+            null
         }
     } catch (e: Exception) {
+        Log.e("Firebase", "Error al obtener detalles del producto", e)
         null
     }
 }
