@@ -176,20 +176,25 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("pag_perfil_screen") { PerfilScreen(navController) }
         composable("pag_favoritos") { PagFavoritos(navController) }
         composable(
-            route = "edit_faculties?preselected={preselecte PAd}",
-            arguments = listOf(navArgument("preselected") {
-                defaultValue = ""
-            })
+            route = "edit_faculties?preselected={preselected}",
+            arguments = listOf(
+                navArgument("preselected") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
         ) { backStackEntry ->
-            val preselected = backStackEntry.arguments?.getString("preselected") ?: ""
-            val preselectedList = if (preselected.isNotEmpty()) preselected.split(",") else emptyList()
+            val preselected = backStackEntry.arguments?.getString("preselected")
+                ?.split(",")
+                ?.filter { it.isNotBlank() } ?: emptyList()
 
             FacultySelectionScreen(
                 navController = navController,
                 viewModel = viewModel(),
                 isEdit = true,
-                preselectedFaculties = preselectedList)
+                preselectedFaculties = preselected)
         }
+
 
         composable(
             route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}",

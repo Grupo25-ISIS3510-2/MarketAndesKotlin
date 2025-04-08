@@ -1,6 +1,7 @@
 package com.uniandes.marketandes.view.main
 
 import RegisterScreen
+import UserPreferencesViewModel
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -30,6 +31,8 @@ import com.uniandes.marketandes.R
 import kotlinx.coroutines.delay
 import com.uniandes.marketandes.view.authentication.ui.AuthenticationScreen
 import com.uniandes.marketandes.view.authentication.ui.AuthenticationViewModel
+import com.uniandes.marketandes.view.preferences.FacultySelectionScreen
+import com.uniandes.marketandes.view.preferences.InterestSelectionScreen
 
 class MainActivity : FragmentActivity() {
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
@@ -122,6 +125,8 @@ fun AuthNavHost(navController: NavHostController, isAuthenticated: Boolean)
         composable("authentication") { AuthenticationScreen(viewModel = viewModel(), navController) }
         composable("register") { RegisterScreen(viewModel = viewModel(), navController) }
         composable("pag_home") { MainScreen() }
+        composable("faculty_selection") { FacultySelectionScreen( navController, UserPreferencesViewModel(), false, emptyList()) }
+        composable("interest_selection") { InterestSelectionScreen( navController, UserPreferencesViewModel(), false, emptyList()) }
 
     }
     Log.d("AuthNavHost", "isAuthenticated: $isAuthenticated")
