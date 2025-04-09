@@ -98,6 +98,7 @@ dependencies {
 
 
     implementation(libs.androidx.credentials)
+    implementation(libs.play.services.analytics.impl)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

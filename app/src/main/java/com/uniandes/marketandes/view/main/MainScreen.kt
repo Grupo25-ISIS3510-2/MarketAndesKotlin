@@ -33,11 +33,14 @@ import com.uniandes.marketandes.view.*
 import com.uniandes.marketandes.view.authentication.ui.AuthenticationScreen
 import com.uniandes.marketandes.view.authentication.ui.AuthenticationViewModel
 import com.uniandes.marketandes.view.authentication.ui.RegistrationViewModel
+
+
 import com.google.android.gms.maps.model.LatLng
 import com.uniandes.marketandes.view.preferences.FacultySelectionScreen
 import com.uniandes.marketandes.view.preferences.InterestSelectionScreen
 import kotlinx.coroutines.launch
 import android.content.Intent
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -45,6 +48,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
+import com.uniandes.marketandes.view.favorites.PagFavoritos
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,21 +174,27 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("pag_chat") { PagChat(navController) }
 
         composable("pag_perfil_screen") { PerfilScreen(navController) }
+        composable("pag_favoritos") { PagFavoritos(navController) }
         composable(
             route = "edit_faculties?preselected={preselected}",
-            arguments = listOf(navArgument("preselected") {
-                defaultValue = ""
-            })
+            arguments = listOf(
+                navArgument("preselected") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
         ) { backStackEntry ->
-            val preselected = backStackEntry.arguments?.getString("preselected") ?: ""
-            val preselectedList = if (preselected.isNotEmpty()) preselected.split(",") else emptyList()
+            val preselected = backStackEntry.arguments?.getString("preselected")
+                ?.split(",")
+                ?.filter { it.isNotBlank() } ?: emptyList()
 
             FacultySelectionScreen(
                 navController = navController,
                 viewModel = viewModel(),
                 isEdit = true,
-                preselectedFaculties = preselectedList)
+                preselectedFaculties = preselected)
         }
+
 
         composable(
             route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}",
@@ -232,15 +242,16 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
                 Text("Obteniendo ubicación...", fontSize = 20.sp, modifier = Modifier.padding(16.dp))
             }
         }
-        composable("detalle_compra/{productName}") { backStackEntry ->
-            val productName = backStackEntry.arguments?.getString("productName") ?: ""
-            PagCompraDetail(navController, productName)
+        composable("detalle_compra/{productId}") { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            PagCompraDetail(navController, productId)
         }
         composable("PagChatMap/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             PagChatMap(
                 navController = navController,
                 chatId = chatId
+
             )
         }
         composable("chatDetail/{chatId}") { backStackEntry ->
@@ -280,6 +291,12 @@ fun DrawerContent(navController: NavController, onClose: () -> Unit) {
             )
             DrawerItem(icon = Icons.Outlined.GridView, text = "Mis publicaciones")
             DrawerItem(icon = Icons.Outlined.History, text = "Historial")
+            DrawerItem(icon = Icons.Outlined.FavoriteBorder, text = "Mis Favoritos",
+                onClick = {
+                    navController.navigate("pag_favoritos")
+                    onClose()
+                }
+            )
             DrawerItem(icon = Icons.Outlined.ShoppingBag, text = "Mis compras")
             DrawerItem(
                 icon = Icons.Outlined.Storefront,

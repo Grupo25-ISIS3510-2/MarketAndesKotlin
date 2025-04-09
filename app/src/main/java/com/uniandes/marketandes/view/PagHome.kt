@@ -48,7 +48,9 @@ fun PagHome(navController: NavHostController) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -58,19 +60,16 @@ fun PagHome(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Usando LazyVerticalGrid con 2 columnas
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2), // Especificamos que queremos 2 columnas
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize()
         ) {
             items(productos) { producto ->
-                HomeProductCard(product = producto, navController)
+                HomeProductCard(product = producto, navController = navController)
             }
         }
     }
 }
-
-
 
 @Composable
 fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
@@ -78,7 +77,13 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable { navController.navigate("detalle_compra/${product.name}") } // Agregado aquí
+            .clickable {
+                if (product.id.isNotEmpty()) {
+                    navController.navigate("detalle_compra/${product.id}")
+                } else {
+                    Log.e("Navigation", "El ID del producto está vacío")
+                }
+            }
     ) {
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
@@ -94,8 +99,7 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
             text = product.name,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(top = 4.dp)
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         Box(
@@ -117,8 +121,6 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
     }
 }
 
-
-
 suspend fun getUserPreferences(db: FirebaseFirestore, userId: String): UserPreferences {
     return try {
         val snapshot = db.collection("users").document(userId).get().await()
@@ -139,6 +141,7 @@ suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduc
     return try {
         val snapshot = db.collection("products").get().await()
         snapshot.documents.mapNotNull { doc ->
+            val id = doc.id
             val name = doc.getString("name") ?: "Sin nombre"
             val price = doc.getLong("price")?.toInt() ?: 0
             val imageURL = doc.getString("imageURL") ?: "Sin imagen"
@@ -146,25 +149,25 @@ suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduc
             val description = doc.getString("description") ?: "Sin descripción"
             val sellerID = doc.getString("sellerID") ?: "Sin vendedor"
             val sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
-            val comments = getHomeCommentsForProduct(db, name)
-            HomeProduct(name, price, imageURL, category, description, sellerID, sellerRating, comments )
+            val comments = getHomeCommentsForProduct(db, id)
+            HomeProduct(id, name, price, imageURL, category, description, sellerID, sellerRating, comments)
         }
     } catch (e: Exception) {
         emptyList()
     }
 }
 
-private suspend fun getHomeCommentsForProduct(db: FirebaseFirestore, name: String): List<ProductComment> {
+private suspend fun getHomeCommentsForProduct(db: FirebaseFirestore, productId: String): List<ProductComment> {
     return try {
         val commentsSnapshot = db.collection("products")
-            .document(name)
+            .document(productId)
             .collection("comments")
             .get()
             .await()
 
         commentsSnapshot.documents.mapNotNull { doc ->
             val text = doc.getString("text") ?: ""
-            val author = doc.getString("author") ?: "Anonimo"
+            val author = doc.getString("author") ?: "Anónimo"
             ProductComment(text, author)
         }
     } catch (e: Exception) {
@@ -178,6 +181,7 @@ data class ProductComment(
 )
 
 data class HomeProduct(
+    val id: String ,
     val name: String,
     val price: Int,
     val imageURL: String,
@@ -185,5 +189,5 @@ data class HomeProduct(
     val description: String,
     val sellerID: String,
     val sellerRating: Int,
-    val comments: List<ProductComment>
+    val comments: List<ProductComment> = emptyList()
 )
