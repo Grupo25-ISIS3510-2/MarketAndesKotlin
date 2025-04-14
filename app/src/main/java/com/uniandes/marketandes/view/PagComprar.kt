@@ -23,15 +23,15 @@ import kotlinx.coroutines.tasks.await
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import com.uniandes.marketandes.model.Product
+import com.uniandes.marketandes.viewModel.ProductViewModel
+
 
 @Composable
-fun PagComprar(navController: NavHostController) {
-    var productos by remember { mutableStateOf<List<Product>>(emptyList()) }
-    val db = FirebaseFirestore.getInstance()
+fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
+    val productos by viewModel.products.collectAsState()
 
-    LaunchedEffect(Unit) {
-        productos = getProductsFromFirestore(db)
-    }
+
 
     Column(
         modifier = Modifier
@@ -101,67 +101,3 @@ fun ProductCard(product: Product, navController: NavHostController) {
     }
 }
 
-suspend fun getProductsFromFirestore(db: FirebaseFirestore): List<Product> {
-    return try {
-        val snapshot = db.collection("products").get().await()
-        snapshot.documents.mapNotNull { doc ->
-            val id = doc.id
-            val name = doc.getString("name") ?: "Sin nombre"
-            val price = doc.getLong("price")?.toInt() ?: 0
-            val imageURL = doc.getString("imageURL") ?: "Sin imagen"
-            val category = doc.getString("category") ?: "Sin categoria"
-            val description = doc.getString("description") ?: "Sin descripción"
-            val sellerID = doc.getString("sellerID") ?: "Sin vendedor"
-            val sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
-            val comments = getCommentsForProduct(db, id)
-            Product(
-                id = doc.id,
-                name = name,
-                price = price,
-                imageURL = imageURL,
-                category = category,
-                description = description,
-                sellerID = sellerID,
-                sellerRating = sellerRating,
-                comments = comments
-            )
-        }
-    } catch (e: Exception) {
-        emptyList()
-    }
-}
-
-suspend fun getCommentsForProduct(db: FirebaseFirestore, id: String): List<Comment> {
-    return try {
-        val commentsSnapshot = db.collection("products")
-            .document(id)
-            .collection("comments")
-            .get()
-            .await()
-
-        commentsSnapshot.documents.mapNotNull { doc ->
-            val text = doc.getString("text") ?: ""
-            val author = doc.getString("author") ?: "Anonimo"
-            Comment(text, author)
-        }
-    } catch (e: Exception) {
-        emptyList()
-    }
-}
-
-data class Comment(
-    val text: String,
-    val author: String
-)
-
-data class Product(
-    val id: String,
-    val name: String,
-    val price: Int,
-    val imageURL: String,
-    val category: String,
-    val description: String,
-    val sellerID: String,
-    val sellerRating: Int,
-    val comments: List<Comment> = emptyList()
-)

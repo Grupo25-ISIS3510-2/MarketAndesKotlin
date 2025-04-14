@@ -49,6 +49,13 @@ import com.google.firebase.auth.auth
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
 import com.uniandes.marketandes.view.favorites.PagFavoritos
+import com.uniandes.marketandes.viewModel.ProductViewModel
+import com.uniandes.marketandes.viewModel.ProductDetailViewModel
+import com.uniandes.marketandes.viewModel.PagChatViewModel
+import com.uniandes.marketandes.viewModel.PagChatMapViewModel
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,6 +165,7 @@ fun HeaderBar(onMenuClick: () -> Unit) {
     )
 }
 
+
 @Composable
 fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modifier: Modifier) {
     NavHost(
@@ -167,7 +175,11 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
     ) {
         composable("authentication") { AuthenticationScreen(AuthenticationViewModel(), navController) }
         composable("register") { RegisterScreen(RegistrationViewModel(), navController) }
-        composable("pag_comprar") { PagComprar(navController) }
+        composable("pag_comprar") {
+            val productViewModel: ProductViewModel = viewModel()
+            PagComprar(navController, productViewModel)
+        }
+
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome(navController) }
         composable("pag_intercambio") { PagIntercambio() }
@@ -234,7 +246,11 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
 
 
-        composable("pag_compra") { PagComprar(navController) }
+        composable("pag_comprar") {
+            val productViewModel: ProductViewModel = viewModel()
+            PagComprar(navController, productViewModel)
+        }
+
         composable("pag_store_maps") {
             userLocation?.let { location ->
                 PagStoreMaps(navController)

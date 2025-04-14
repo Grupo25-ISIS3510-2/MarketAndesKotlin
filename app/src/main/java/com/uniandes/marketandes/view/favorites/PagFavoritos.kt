@@ -26,7 +26,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.view.HomeProduct
-import com.uniandes.marketandes.view.Product
+import com.uniandes.marketandes.model.Product
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await

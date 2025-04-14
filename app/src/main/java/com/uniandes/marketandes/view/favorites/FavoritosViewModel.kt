@@ -5,8 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.uniandes.marketandes.view.Product
-import com.uniandes.marketandes.view.Comment
+import com.uniandes.marketandes.model.Product
 import com.uniandes.marketandes.view.HomeProduct
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,9 +96,8 @@ class FavoritosViewModel : ViewModel() {
                     if (name != null && price != null && imageURL != null &&
                         category != null && description != null && sellerID != null && sellerRating != null
                     ) {
-                        val comments = getCommentsForProduct(id)
                         val producto = Product(
-                            id, name, price, imageURL, category, description, sellerID, sellerRating, comments
+                            id, name, price, imageURL, category, description, sellerID, sellerRating
                         )
                         productos.add(producto)
                     }
@@ -114,25 +112,7 @@ class FavoritosViewModel : ViewModel() {
         }
     }
 
-    private suspend fun getCommentsForProduct(productId: String): List<Comment> {
-        return try {
-            val snapshot = db.collection("products")
-                .document(productId)
-                .collection("comments")
-                .get()
-                .await()
 
-            snapshot.documents.mapNotNull { doc ->
-                val text = doc.getString("text")
-                val author = doc.getString("author") ?: "Anónimo"
-                if (text != null) Comment(text, author) else null
-            }
-
-        } catch (e: Exception) {
-            Log.e("FavoritosViewModel", "Error cargando comentarios de $productId: ${e.message}")
-            emptyList()
-        }
-    }
 
     fun toggleFavorito(product: Product) {
         viewModelScope.launch {
