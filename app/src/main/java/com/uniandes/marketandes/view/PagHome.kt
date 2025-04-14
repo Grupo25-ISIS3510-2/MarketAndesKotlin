@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,27 +26,43 @@ import kotlinx.coroutines.tasks.await
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.uniandes.marketandes.viewmodel.FavoritosViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.uniandes.marketandes.model.Product
+
 
 @Composable
 fun PagHome(navController: NavHostController) {
-    var productos by remember { mutableStateOf<List<HomeProduct>>(emptyList()) }
+    var productos by remember { mutableStateOf<List<Product>>(emptyList()) }
     val db = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    val favoritosViewModel: FavoritosViewModel = viewModel()
+    val categoriaFavorita by favoritosViewModel.categoriaFavorita.collectAsState()
+
+
 
     LaunchedEffect(userId) {
         if (userId != null) {
             val preferences = getUserPreferences(db, userId)
             val allProducts = getHomeProductsFromFirestore(db)
+            Log.d("Productos", "Cantidad de productos obtenidos: ${allProducts.size}")
 
             productos = allProducts.filter { product ->
                 preferences.faculties.contains(product.category) ||
-                        preferences.interests.contains(product.category)
+                        preferences.interests.contains(product.category) ||
+                        product.category.trim().equals(categoriaFavorita?.trim(), ignoreCase = true)
+
             }
 
             Log.d("Facultades", "Facultades del usuario: ${preferences.faculties}")
             Log.d("Intereses", "Intereses del usuario: ${preferences.interests}")
+            Log.d("ProductosFiltrados", "Cantidad de productos filtrados: ${productos.size}")
         }
     }
+
 
     Column(
         modifier = Modifier
@@ -53,7 +70,47 @@ fun PagHome(navController: NavHostController) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
+        if (categoriaFavorita != null) {
+            Text(
+                text = "Recomendaciones de tu categoría favorita: $categoriaFavorita",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            val productosFavoritos = productos.filter { it.category == categoriaFavorita }
+            LazyRow(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(productosFavoritos) { producto ->
+                    HomeProductCard(product = producto, navController = navController)
+                }
+            }
+        } else {
+            Text(
+                text = "No tienes productos favoritos en una categoría",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
+        if (productos.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 8.dp)
+            ) {
+                items(productos) { producto ->
+                    HomeProductCard(product = producto, navController = navController)
+                }
+            }
+        } else {
+            Text(
+                text = "No hay productos disponibles para esta categoría",
+                fontSize = 16.sp
+            )
+        }
+
+            Text(
             text = "Productos recomendados",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -72,10 +129,9 @@ fun PagHome(navController: NavHostController) {
 }
 
 @Composable
-fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
+fun HomeProductCard(product: Product, navController: NavHostController) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
             .padding(8.dp)
             .clickable {
                 if (product.id.isNotEmpty()) {
@@ -84,20 +140,21 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
                     Log.e("Navigation", "El ID del producto está vacío")
                 }
             }
+            .fillMaxWidth()
     ) {
         Image(
             painter = rememberAsyncImagePainter(product.imageURL),
             contentDescription = "Imagen de ${product.name}",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .height(150.dp)
-                .fillMaxWidth()
+                .height(160.dp)
+                .width(120.dp)
                 .clip(RoundedCornerShape(8.dp))
         )
 
         Text(
             text = product.name,
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 4.dp)
         )
@@ -108,7 +165,7 @@ fun HomeProductCard(product: HomeProduct, navController: NavHostController) {
                 .padding(top = 4.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF002366))
-                .padding(8.dp),
+                .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -137,7 +194,7 @@ data class UserPreferences(
     val interests: List<String>
 )
 
-suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduct> {
+suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<Product> {
     return try {
         val snapshot = db.collection("products").get().await()
         snapshot.documents.mapNotNull { doc ->
@@ -149,45 +206,13 @@ suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<HomeProduc
             val description = doc.getString("description") ?: "Sin descripción"
             val sellerID = doc.getString("sellerID") ?: "Sin vendedor"
             val sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
-            val comments = getHomeCommentsForProduct(db, id)
-            HomeProduct(id, name, price, imageURL, category, description, sellerID, sellerRating, comments)
+
+            Product(id, name, price, imageURL, category, description, sellerID, sellerRating)
         }
     } catch (e: Exception) {
         emptyList()
     }
 }
 
-private suspend fun getHomeCommentsForProduct(db: FirebaseFirestore, productId: String): List<ProductComment> {
-    return try {
-        val commentsSnapshot = db.collection("products")
-            .document(productId)
-            .collection("comments")
-            .get()
-            .await()
 
-        commentsSnapshot.documents.mapNotNull { doc ->
-            val text = doc.getString("text") ?: ""
-            val author = doc.getString("author") ?: "Anónimo"
-            ProductComment(text, author)
-        }
-    } catch (e: Exception) {
-        emptyList()
-    }
-}
 
-data class ProductComment(
-    val text: String,
-    val author: String
-)
-
-data class HomeProduct(
-    val id: String ,
-    val name: String,
-    val price: Int,
-    val imageURL: String,
-    val category: String,
-    val description: String,
-    val sellerID: String,
-    val sellerRating: Int,
-    val comments: List<ProductComment> = emptyList()
-)

@@ -57,6 +57,8 @@ import com.uniandes.marketandes.viewModel.PagChatMapViewModel
 
 
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {

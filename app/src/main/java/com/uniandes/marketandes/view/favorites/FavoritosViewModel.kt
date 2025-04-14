@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.model.Product
-import com.uniandes.marketandes.view.HomeProduct
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 class FavoritosViewModel : ViewModel() {
 
@@ -113,7 +116,6 @@ class FavoritosViewModel : ViewModel() {
     }
 
 
-
     fun toggleFavorito(product: Product) {
         viewModelScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
@@ -149,4 +151,20 @@ class FavoritosViewModel : ViewModel() {
             }
         }
     }
+
+    val categoriaFavorita: StateFlow<String?> = _productosFavoritos
+        .map { favoritos ->
+            favoritos
+                .groupingBy { it.category }
+                .eachCount()
+                .maxByOrNull { it.value }
+                ?.key
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun updateFavoritos(favoritos: List<Product>) {
+        _productosFavoritos.value = favoritos
+    }
+
+
 }
