@@ -15,14 +15,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-class FavoritosViewModel : ViewModel() {
+class FavoritosViewModel : ViewModel()
+{
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val _productosFavoritos = MutableStateFlow<List<Product>>(emptyList())
     val productosFavoritos: StateFlow<List<Product>> = _productosFavoritos
 
-    init {
+    init
+    {
         cargarFavoritos()
     }
 
@@ -34,16 +36,20 @@ class FavoritosViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            try {
+            try
+            {
                 val favoritoRef = db.collection("users")
                     .document(userId)
                     .collection("favoritos")
                     .document(product.id)
 
                 val docSnapshot = favoritoRef.get().await()
-                if (docSnapshot.exists()) {
+                if (docSnapshot.exists())
+                {
                     onResult(true, "Ya está en favoritos")
-                } else {
+                }
+                else
+                {
                     val fechaActual = System.currentTimeMillis()
                     val data = hashMapOf(
                         "id" to product.id,
@@ -62,22 +68,27 @@ class FavoritosViewModel : ViewModel() {
                     onResult(true, "Guardado en favoritos")
                     cargarFavoritos()
                 }
-            } catch (e: Exception) {
+            }
+            catch (e: Exception)
+            {
                 Log.e("FavoritosViewModel", "Error al guardar en favoritos", e)
                 onResult(false, "Error: ${e.message}")
             }
         }
     }
 
-    private fun cargarFavoritos() {
+    private fun cargarFavoritos()
+    {
         viewModelScope.launch {
             val userId = auth.currentUser?.uid
-            if (userId == null) {
+            if (userId == null)
+            {
                 Log.d("FavoritosViewModel", "Usuario no autenticado (userId es null)")
                 return@launch
             }
 
-            try {
+            try
+            {
                 val favoritosSnapshot = db.collection("users")
                     .document(userId)
                     .collection("favoritos")
@@ -98,7 +109,8 @@ class FavoritosViewModel : ViewModel() {
 
                     if (name != null && price != null && imageURL != null &&
                         category != null && description != null && sellerID != null && sellerRating != null
-                    ) {
+                    )
+                    {
                         val producto = Product(
                             id, name, price, imageURL, category, description, sellerID, sellerRating
                         )
@@ -108,7 +120,9 @@ class FavoritosViewModel : ViewModel() {
 
                 _productosFavoritos.value = productos
 
-            } catch (e: Exception) {
+            }
+            catch (e: Exception)
+            {
                 Log.e("FavoritosViewModel", "Error cargando favoritos: ${e.message}", e)
                 _productosFavoritos.value = emptyList()
             }
@@ -116,7 +130,8 @@ class FavoritosViewModel : ViewModel() {
     }
 
 
-    fun toggleFavorito(product: Product) {
+    fun toggleFavorito(product: Product)
+    {
         viewModelScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
 
@@ -125,12 +140,16 @@ class FavoritosViewModel : ViewModel() {
                 .collection("favoritos")
                 .document(product.id)
 
-            try {
+            try
+            {
                 val snapshot = favoritoRef.get().await()
-                if (snapshot.exists()) {
+                if (snapshot.exists())
+                {
                     favoritoRef.delete().await()
                     Log.d("FavoritosViewModel", "Producto eliminado de favoritos: ${product.name}")
-                } else {
+                }
+                else
+                {
                     val favoritoData = mapOf(
                         "id" to product.id,
                         "name" to product.name,
@@ -146,7 +165,9 @@ class FavoritosViewModel : ViewModel() {
                     Log.d("FavoritosViewModel", "Producto agregado a favoritos: ${product.name}")
                 }
                 cargarFavoritos()
-            } catch (e: Exception) {
+            }
+            catch (e: Exception)
+            {
                 Log.e("FavoritosViewModel", "Error al hacer toggle de favorito: ${e.message}")
             }
         }
@@ -162,7 +183,8 @@ class FavoritosViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    fun updateFavoritos(favoritos: List<Product>) {
+    fun updateFavoritos(favoritos: List<Product>)
+    {
         _productosFavoritos.value = favoritos
     }
 

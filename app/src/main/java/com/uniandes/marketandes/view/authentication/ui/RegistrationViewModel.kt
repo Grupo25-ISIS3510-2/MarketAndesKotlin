@@ -6,14 +6,14 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
-class RegistrationViewModel : ViewModel() {
+class RegistrationViewModel : ViewModel()
+{
 
-    private val auth: FirebaseAuth = Firebase.auth
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     private val _email = MutableLiveData<String>()
     val email: LiveData<String> = _email
@@ -23,7 +23,6 @@ class RegistrationViewModel : ViewModel() {
 
     private val _confirmPassword = MutableLiveData<String>()
     val confirmPassword: LiveData<String> = _confirmPassword
-
 
     private val _registerEnable = MutableLiveData<Boolean>()
     val registerEnable: LiveData<Boolean> = _registerEnable
@@ -46,32 +45,35 @@ class RegistrationViewModel : ViewModel() {
                 password == confirmPassword
     }
 
-
-    fun onRegisterSelected(home: () -> Unit) {
+    fun onRegisterSelected(home: () -> Unit)
+    {
         _isLoading.value = true
         viewModelScope.launch {
-            try {
-                auth.createUserWithEmailAndPassword(_email.value ?: "", _password.value ?: "")
-                    .addOnCompleteListener { task ->
-                        _isLoading.value = false
-                        if (task.isSuccessful) {
-                            Log.d("MarketAndesRegister", "Usuario registrado con éxito!")
-                            _isRegistered.value = true
-                            home()
-                        } else {
-                            Log.d("MarketAndesRegister", "Error en registro: ${task.exception?.message}")
-                            _registerError.value = task.exception?.message
-                        }
-                    }
-            } catch (e: Exception) {
-                _isLoading.value = false
+            try
+            {
+                val emailValue = _email.value ?: ""
+                val passwordValue = _password.value ?: ""
+
+                auth.createUserWithEmailAndPassword(emailValue, passwordValue).await()
+
+                Log.d("MarketAndesRegister", "Usuario registrado con éxito!")
+                _isRegistered.value = true
+                home()
+            }
+            catch (e: Exception)
+            {
                 Log.e("MarketAndesRegister", "Error en registro: ${e.message}")
                 _registerError.value = e.message
+            }
+            finally
+            {
+                _isLoading.value = false
             }
         }
     }
 
-    fun clearError() {
+    fun clearError()
+    {
         _registerError.value = null
     }
 
