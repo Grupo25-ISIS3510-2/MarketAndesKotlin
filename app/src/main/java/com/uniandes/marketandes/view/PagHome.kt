@@ -27,6 +27,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -105,7 +109,7 @@ fun PagHome(navController: NavHostController) {
             }
         } else {
             Text(
-                text = "No hay productos disponibles para esta categoría",
+                text = "",
                 fontSize = 16.sp
             )
         }
@@ -130,55 +134,86 @@ fun PagHome(navController: NavHostController) {
 
 @Composable
 fun HomeProductCard(product: Product, navController: NavHostController) {
-    Column(
+    Card(
         modifier = Modifier
             .padding(8.dp)
+            .width(160.dp)
+            .height(240.dp)
             .clickable {
                 if (product.id.isNotEmpty()) {
                     navController.navigate("detalle_compra/${product.id}")
                 } else {
                     Log.e("Navigation", "El ID del producto está vacío")
                 }
-            }
-            .fillMaxWidth()
+            },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(product.imageURL),
-            contentDescription = "Imagen de ${product.name}",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .height(160.dp)
-                .width(120.dp)
-                .clip(RoundedCornerShape(8.dp))
-        )
 
-        Text(
-            text = product.name,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF002366))
-                .padding(20.dp),
-            contentAlignment = Alignment.Center
+                .padding(8.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Box(
+                modifier = Modifier
+                    .height(140.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(product.imageURL),
+                    contentDescription = "Imagen de ${product.name}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                )
+            }
+
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
-                text = "$ ${product.price}",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                text = product.name,
+                color = Color.Black,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
             )
+
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF002366))
+                    .height(36.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "$ ${product.price}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
 
-suspend fun getUserPreferences(db: FirebaseFirestore, userId: String): UserPreferences {
+    suspend fun getUserPreferences(db: FirebaseFirestore, userId: String): UserPreferences {
     return try {
         val snapshot = db.collection("users").document(userId).get().await()
         val faculties = snapshot.get("faculties") as? List<String> ?: emptyList()
