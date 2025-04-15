@@ -9,12 +9,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
-
+import kotlinx.coroutines.tasks.await
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
-
-class AuthenticationViewModel : ViewModel() {
+class AuthenticationViewModel : ViewModel()
+{
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
@@ -36,16 +36,15 @@ class AuthenticationViewModel : ViewModel() {
     private val _loginError = MutableLiveData<String?>()
     val loginError: LiveData<String?> = _loginError
 
-
-    init {
+    init
+    {
         val currentUser = auth.currentUser
         _isAuthenticated.value = currentUser != null
         Log.d("MarketAndes", "Usuario autenticado al iniciar: ${currentUser?.email}")
-
     }
 
-
-    fun onLoginChange(email: String, password: String) {
+    fun onLoginChange(email: String, password: String)
+    {
         _email.value = email
         _password.value = password
         _loginEnable.value = isValidEmail(email) && isValidPassword(password)
@@ -58,37 +57,23 @@ class AuthenticationViewModel : ViewModel() {
         viewModelScope.launch {
             try
             {
+                val emailValue = _email.value ?: ""
+                val passwordValue = _password.value ?: ""
 
-                val sharedPreferences = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-                sharedPreferences.edit().putBoolean("usuario_autenticado", true).apply()
+                val result = auth.signInWithEmailAndPassword(emailValue, passwordValue).await()
 
-
-                auth.signInWithEmailAndPassword(_email.value ?: "", _password.value ?: "")
-                    .addOnCompleteListener { task ->
-                        _isLoading.value = false
-                        if (task.isSuccessful)
-                        {
-
-                            Log.d("MarketAndesLogin", "signInWithEmailAndPassword: Logueado!!")
-
-                            val user = FirebaseAuth.getInstance().currentUser
-                            Log.d("MarketAndesLogin", "signInWithEmailAndPassword: ${user?.email}")
-                            _isAuthenticated.value = true
-                            home()
-                            saveCredentialSafety(context, _email.value ?: "", _password.value ?: "")
-
-                        } else
-                        {
-                            Log.d("MarketAndesLogin", "signInWithEmailAndPassword: ${task.exception?.message}")
-                            _loginError.value = task.exception?.message
-                        }
-                    }
+                _isAuthenticated.value = true
+                saveCredentialSafety(context, emailValue, passwordValue)
+                home()
             }
             catch (e: Exception)
             {
-                _isLoading.value = false
                 Log.e("MarketAndesLogin", "Error en login: ${e.message}")
                 _loginError.value = e.message
+            }
+            finally
+            {
+                _isLoading.value = false
             }
         }
     }
@@ -99,9 +84,12 @@ class AuthenticationViewModel : ViewModel() {
         {
             auth.sendPasswordResetEmail(email)
                 .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
+                    if (task.isSuccessful)
+                    {
                         _loginError.value = "Correo de recuperación enviado a $email"
-                    } else {
+                    }
+                    else
+                    {
                         _loginError.value = task.exception?.message ?: "Error al enviar correo"
                     }
                 }
@@ -112,92 +100,84 @@ class AuthenticationViewModel : ViewModel() {
         }
     }
 
-
     fun saveCredentialSafety(context: Context, email: String, password: String)
     {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        val sharedPreferences = EncryptedSharedPreferences.create(
-            context,
-            "credentials",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-
+        val sharedPreferences = getEncryptedPrefs(context)
         sharedPreferences.edit()
             .putString("email", email)
             .putString("password", password)
             .apply()
 
         Log.d("MarketAndesDebug", "Credenciales guardadas: $email / $password")
-
-
     }
 
-
-    fun getCredentialSafety(context: Context): Pair<String, String>? {
-        val sharedPreferences = EncryptedSharedPreferences.create(
-            context,
-            "credentials",
-            MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build(),
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-
+    fun getCredentialSafety(context: Context): Pair<String, String>?
+    {
+        val sharedPreferences = getEncryptedPrefs(context)
         val email = sharedPreferences.getString("email", null)
         val password = sharedPreferences.getString("password", null)
 
         Log.d("MarketAndesDebug", "Credenciales obtenidas: $email / $password")
 
-
-        return if (!email.isNullOrBlank() && !password.isNullOrBlank()) {
+        return if (!email.isNullOrBlank() && !password.isNullOrBlank())
+        {
             Pair(email, password)
-        } else {
+        }
+        else
+        {
             null
         }
     }
-
-
 
     fun loginWithStoredCredentials(context: Context, home: () -> Unit)
     {
         val credentials = getCredentialSafety(context)
 
-        if (credentials != null) {
+        if (credentials != null)
+        {
             val (email, password) = credentials
 
             Log.d("MarketAndesDebug", "Intentando login con credenciales almacenadas: $email / $password")
 
             _isLoading.value = true
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    _isLoading.value = false
-                    if (task.isSuccessful) {
-                        Log.d("MarketAndesLogin", "Login con huella exitoso: $email")
-                        _isAuthenticated.value = true
-                        home()
-                    } else {
-                        Log.e("MarketAndesLogin", "Error en login con huella: ${task.exception?.message}")
-                        _loginError.value = task.exception?.message
-                    }
+            viewModelScope.launch {
+                try
+                {
+                    auth.signInWithEmailAndPassword(email, password).await()
+                    _isAuthenticated.value = true
+                    home()
                 }
-        } else {
+                catch (e: Exception)
+                {
+                    Log.e("MarketAndesLogin", "Error en login con huella: ${e.message}")
+                    _loginError.value = e.message
+                }
+                finally
+                {
+                    _isLoading.value = false
+                }
+            }
+        }
+        else
+        {
             Log.e("MarketAndesLogin", "No se encontraron credenciales almacenadas")
             _loginError.value = "No se encontraron credenciales guardadas"
         }
     }
 
-
-
-
+    private fun getEncryptedPrefs(context: Context) = EncryptedSharedPreferences.create(
+        context,
+        "credentials",
+        MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 
     private fun isValidEmail(email: String): Boolean =
         Patterns.EMAIL_ADDRESS.matcher(email).matches() && email.endsWith("@uniandes.edu.co")
 
     private fun isValidPassword(password: String): Boolean = password.length >= 6
+
 }
