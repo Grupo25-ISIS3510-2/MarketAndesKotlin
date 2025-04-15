@@ -1,6 +1,6 @@
 package com.uniandes.marketandes.view.favorites
 
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,23 +16,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.uniandes.marketandes.local.AppDatabase
 import com.uniandes.marketandes.model.Product
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 @Composable
-fun PagFavoritos(navController: NavHostController, viewModel: FavoritosViewModel = remember { FavoritosViewModel() }) {
+fun PagFavoritos(navController: NavHostController) {
+    val context = LocalContext.current
+
+    // ✅ ViewModel con Factory
+    val dao = AppDatabase.getDatabase(context).favoriteDao()
+    val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+    val factory = remember { FavoritosViewModelFactory(dao, connectivityObserver) }
+    val viewModel: FavoritosViewModel = viewModel(factory = factory)
+
     val productos by viewModel.productosFavoritos.collectAsState()
+    val toastMessage by viewModel.mensajeToast.collectAsState()
+
+    // ✅ Mostrar Toast cuando hay mensaje
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.mensajeMostrado()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -50,14 +66,14 @@ fun PagFavoritos(navController: NavHostController, viewModel: FavoritosViewModel
             modifier = Modifier.fillMaxSize()
         ) {
             items(productos) { producto ->
-                FavoriteProductCard(product = producto, navController)
+                FavoriteProductCard(product = producto, navController, viewModel)
             }
         }
     }
 }
 
 @Composable
-fun FavoriteProductCard(product: Product, navController: NavHostController, viewModel: FavoritosViewModel = remember { FavoritosViewModel() }) {
+fun FavoriteProductCard(product: Product, navController: NavHostController, viewModel: FavoritosViewModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,6 +113,5 @@ fun FavoriteProductCard(product: Product, navController: NavHostController, view
                 fontWeight = FontWeight.Bold
             )
         }
-
     }
 }

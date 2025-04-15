@@ -41,6 +41,7 @@ import com.uniandes.marketandes.view.preferences.InterestSelectionScreen
 import kotlinx.coroutines.launch
 import android.content.Intent
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -50,6 +51,9 @@ import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
 import com.uniandes.marketandes.view.favorites.PagFavoritos
 import com.uniandes.marketandes.viewModel.ProductViewModel
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.ProductViewModelFactory
+
 import com.uniandes.marketandes.viewModel.ProductDetailViewModel
 import com.uniandes.marketandes.viewModel.PagChatViewModel
 import com.uniandes.marketandes.viewModel.PagChatMapViewModel
@@ -249,7 +253,12 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
 
         composable("pag_comprar") {
-            val productViewModel: ProductViewModel = viewModel()
+            val context = LocalContext.current
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+            val productViewModel: ProductViewModel = viewModel(
+                factory = ProductViewModelFactory(connectivityObserver, context)
+            )
+
             PagComprar(navController, productViewModel)
         }
 
