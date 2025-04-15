@@ -33,7 +33,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.R
+import com.uniandes.marketandes.local.AppDatabase
 import com.uniandes.marketandes.model.Product
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 import kotlinx.coroutines.tasks.await
 import com.uniandes.marketandes.viewModel.ProductDetailViewModel
@@ -42,11 +45,17 @@ import java.util.Date
 @Composable
 fun PagCompraDetail(
     navController: NavHostController,
-    productId: String,
-    favoritosViewModel: FavoritosViewModel = viewModel(),
-    detailViewModel: ProductDetailViewModel = viewModel()
+    productId: String
 ) {
     val context = LocalContext.current
+    val daoP = AppDatabase.getDatabase(context).productDao()
+    val daoF = AppDatabase.getDatabase(context).favoriteDao()
+    val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+    val favoritosFactory = remember { FavoritosViewModelFactory(daoF, connectivityObserver) }
+    val favoritosViewModel: FavoritosViewModel = viewModel(factory = favoritosFactory)
+
+    val detailViewModel: ProductDetailViewModel = viewModel()
+
     val product by detailViewModel.product.observeAsState()
 
     LaunchedEffect(productId) {

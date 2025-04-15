@@ -5,6 +5,9 @@ plugins {
     id("com.google.relay") version "0.3.12"
     // Add the Google services Gradle plugin
     id("com.google.gms.google-services")
+    id("com.google.devtools.ksp") version "2.0.0-1.0.21"
+
+
 
 }
 
@@ -95,10 +98,18 @@ dependencies {
     implementation ("androidx.biometric:biometric:1.1.0")
     implementation ("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Room components
+    implementation("androidx.room:room-runtime:2.7.0-alpha01")
+    implementation("androidx.room:room-ktx:2.7.0-alpha01")
+    ksp("androidx.room:room-compiler:2.7.0-alpha01")
+
+
+
 
 
     implementation(libs.androidx.credentials)
     implementation(libs.play.services.analytics.impl)
+    implementation(libs.androidx.room.common.jvm)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

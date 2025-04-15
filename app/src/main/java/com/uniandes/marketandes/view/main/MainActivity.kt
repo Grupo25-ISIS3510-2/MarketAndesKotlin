@@ -1,7 +1,7 @@
 package com.uniandes.marketandes.view.main
 
 import RegisterScreen
-import UserPreferencesViewModel
+import com.uniandes.marketandes.view.preferences.UserPreferencesViewModel
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log

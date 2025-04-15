@@ -1,72 +1,70 @@
 package com.uniandes.marketandes.view
 
 import android.util.Log
-import androidx.compose.runtime.Composable
-import androidx.compose.material3.Text
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.shape.RoundedCornerShape
+import android.widget.Toast
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material3.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.uniandes.marketandes.viewmodel.FavoritosViewModel
+import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
+import com.uniandes.marketandes.local.AppDatabase
 import com.uniandes.marketandes.model.Product
-
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.util.NetworkStatus
+import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
+import com.uniandes.marketandes.viewModel.ProductViewModel
+import com.uniandes.marketandes.viewModel.ProductViewModelFactory
+import com.uniandes.marketandes.viewmodel.FavoritosViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun PagHome(navController: NavHostController) {
-    var productos by remember { mutableStateOf<List<Product>>(emptyList()) }
-    val db = FirebaseFirestore.getInstance()
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val context = LocalContext.current
+    val connectivityObserver = remember { NetworkConnectivityObserver(context) }
 
-    val favoritosViewModel: FavoritosViewModel = viewModel()
+    val dao = AppDatabase.getDatabase(context).favoriteDao()
+    val favoritosFactory = remember { FavoritosViewModelFactory(dao, connectivityObserver) }
+    val favoritosViewModel: FavoritosViewModel = viewModel(factory = favoritosFactory)
+
+    val productViewModel: ProductViewModel = viewModel(factory = ProductViewModelFactory(connectivityObserver, context))
+
+    val productos by productViewModel.products.collectAsStateWithLifecycle()
+    val networkStatus by productViewModel.networkStatus.collectAsStateWithLifecycle()
     val categoriaFavorita by favoritosViewModel.categoriaFavorita.collectAsState()
+    val toastMessage by favoritosViewModel.mensajeToast.collectAsState()
 
+    Log.d("Conexion", "$networkStatus")
+    // Mostrar Toast por falta de conexión
 
-
-    LaunchedEffect(userId) {
-        if (userId != null) {
-            val preferences = getUserPreferences(db, userId)
-            val allProducts = getHomeProductsFromFirestore(db)
-            Log.d("Productos", "Cantidad de productos obtenidos: ${allProducts.size}")
-
-            productos = allProducts.filter { product ->
-                preferences.faculties.contains(product.category) ||
-                        preferences.interests.contains(product.category) ||
-                        product.category.trim().equals(categoriaFavorita?.trim(), ignoreCase = true)
-
-            }
-
-            Log.d("Facultades", "Facultades del usuario: ${preferences.faculties}")
-            Log.d("Intereses", "Intereses del usuario: ${preferences.interests}")
-            Log.d("ProductosFiltrados", "Cantidad de productos filtrados: ${productos.size}")
+    LaunchedEffect(networkStatus) {
+        if (networkStatus != NetworkStatus.Available) {
+            delay(5000) // ⏳ Espera 5 segundos
+            Toast.makeText(context, "Estás sin conexión. Mostrando productos en caché.", Toast.LENGTH_LONG).show()
         }
     }
 
+    // Mostrar Toast de favoritosViewModel
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            favoritosViewModel.mensajeMostrado()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -74,17 +72,15 @@ fun PagHome(navController: NavHostController) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (categoriaFavorita != null) {
+        if (!categoriaFavorita.isNullOrBlank()) {
             Text(
                 text = "Recomendaciones de tu categoría favorita: $categoriaFavorita",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            val productosFavoritos = productos.filter { it.category == categoriaFavorita }
-            LazyRow(
-                modifier = Modifier.fillMaxSize()
-            ) {
+            val productosFavoritos = productos.filter { it.category.equals(categoriaFavorita, ignoreCase = true) }
+            LazyRow(modifier = Modifier.fillMaxWidth()) {
                 items(productosFavoritos) { producto ->
                     HomeProductCard(product = producto, navController = navController)
                 }
@@ -98,10 +94,20 @@ fun PagHome(navController: NavHostController) {
             )
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Productos recomendados",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
         if (productos.isNotEmpty()) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 8.dp)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(4.dp)
             ) {
                 items(productos) { producto ->
                     HomeProductCard(product = producto, navController = navController)
@@ -109,25 +115,10 @@ fun PagHome(navController: NavHostController) {
             }
         } else {
             Text(
-                text = "",
-                fontSize = 16.sp
+                text = "No hay productos disponibles",
+                fontSize = 16.sp,
+                modifier = Modifier.padding(top = 16.dp)
             )
-        }
-
-            Text(
-            text = "Productos recomendados",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(productos) { producto ->
-                HomeProductCard(product = producto, navController = navController)
-            }
         }
     }
 }
@@ -142,37 +133,26 @@ fun HomeProductCard(product: Product, navController: NavHostController) {
             .clickable {
                 if (product.id.isNotEmpty()) {
                     navController.navigate("detalle_compra/${product.id}")
-                } else {
-                    Log.e("Navigation", "El ID del producto está vacío")
                 }
             },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-
         Column(
             modifier = Modifier
                 .padding(8.dp)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+            Image(
+                painter = rememberAsyncImagePainter(product.imageURL),
+                contentDescription = "Imagen de ${product.name}",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .height(140.dp)
+                    .height(120.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(product.imageURL),
-                    contentDescription = "Imagen de ${product.name}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                )
-            }
-
+                    .clip(RoundedCornerShape(10.dp))
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -189,13 +169,11 @@ fun HomeProductCard(product: Product, navController: NavHostController) {
                     .height(40.dp)
             )
 
-
             Spacer(modifier = Modifier.height(6.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFF002366))
                     .height(36.dp),
@@ -212,42 +190,3 @@ fun HomeProductCard(product: Product, navController: NavHostController) {
         }
     }
 }
-
-    suspend fun getUserPreferences(db: FirebaseFirestore, userId: String): UserPreferences {
-    return try {
-        val snapshot = db.collection("users").document(userId).get().await()
-        val faculties = snapshot.get("faculties") as? List<String> ?: emptyList()
-        val interests = snapshot.get("interests") as? List<String> ?: emptyList()
-        UserPreferences(faculties, interests)
-    } catch (e: Exception) {
-        UserPreferences(emptyList(), emptyList())
-    }
-}
-
-data class UserPreferences(
-    val faculties: List<String>,
-    val interests: List<String>
-)
-
-suspend fun getHomeProductsFromFirestore(db: FirebaseFirestore): List<Product> {
-    return try {
-        val snapshot = db.collection("products").get().await()
-        snapshot.documents.mapNotNull { doc ->
-            val id = doc.id
-            val name = doc.getString("name") ?: "Sin nombre"
-            val price = doc.getLong("price")?.toInt() ?: 0
-            val imageURL = doc.getString("imageURL") ?: "Sin imagen"
-            val category = doc.getString("category") ?: "Sin categoria"
-            val description = doc.getString("description") ?: "Sin descripción"
-            val sellerID = doc.getString("sellerID") ?: "Sin vendedor"
-            val sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
-
-            Product(id, name, price, imageURL, category, description, sellerID, sellerRating)
-        }
-    } catch (e: Exception) {
-        emptyList()
-    }
-}
-
-
-
