@@ -103,9 +103,8 @@ dependencies {
     implementation("androidx.room:room-ktx:2.7.0-alpha01")
     ksp("androidx.room:room-compiler:2.7.0-alpha01")
 
-
-
-
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.7.1")
 
     implementation(libs.androidx.credentials)
     implementation(libs.play.services.analytics.impl)

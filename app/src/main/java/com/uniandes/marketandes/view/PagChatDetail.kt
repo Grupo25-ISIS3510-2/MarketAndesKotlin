@@ -19,6 +19,7 @@ import com.uniandes.marketandes.model.Message
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uniandes.marketandes.viewModel.ChatDetailViewModel
 import com.uniandes.marketandes.viewModel.ChatDetailViewModelFactory
@@ -28,11 +29,14 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.uniandes.marketandes.local.AppDatabase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailScreen(chatId: String, navController: NavHostController) {
-    val repository = ChatRepository(FirebaseFirestore.getInstance())  // Inicializa el repositorio
+    val context = LocalContext.current
+    val messageDao = AppDatabase.getDatabase(context).messageDao()
+    val repository = ChatRepository(FirebaseFirestore.getInstance(), messageDao)
     val viewModel: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(repository))  // Usa ViewModelFactory
 
     val currentUser = FirebaseAuth.getInstance().currentUser
