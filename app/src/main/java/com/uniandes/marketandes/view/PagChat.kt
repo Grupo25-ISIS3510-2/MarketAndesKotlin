@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -116,20 +118,26 @@ fun ChatItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AsyncImage(
-            model = chat.userImage,
+            model = chat.otherUserImage,
             contentDescription = "Foto de perfil",
             modifier = Modifier
                 .size(48.dp)
-                .aspectRatio(1f)
-                .background(Color.LightGray, shape = RoundedCornerShape(24.dp)),
+                .clip(CircleShape)
+                .background(Color.LightGray, CircleShape),
             contentScale = ContentScale.Crop
         )
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = chat.userName,
+                text = chat.otherUserName,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = chat.roleLabel,
+                fontSize = 13.sp,
+                color = Color.DarkGray
             )
 
             Text(

@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.model.Message
 import com.uniandes.marketandes.local.MessageDao
+import com.uniandes.marketandes.model.Chat
 import com.uniandes.marketandes.model.MessageEntity
 import kotlinx.coroutines.tasks.await
 
@@ -124,5 +125,40 @@ class ChatRepository(private val db: FirebaseFirestore, private val messageDao: 
             .update(lastMessageUpdate)
             .await()
         Log.d("Firestore", "Último mensaje actualizado con éxito")
+    }
+
+    suspend fun getChatInfo(chatId: String, currentUserId: String): Chat? {
+        return try {
+            val doc = db.collection("chats").document(chatId).get().await()
+
+            val userIDs = doc.get("userIDs") as? List<String> ?: return null
+            val lastMessage = doc.getString("lastMessage") ?: ""
+            val productName = doc.getString("productName") ?: "Producto"
+            val otherUserId = userIDs.firstOrNull { it != currentUserId } ?: return null
+
+            // Consultar info del otro usuario
+            val userDoc = db.collection("users").document(otherUserId).get().await()
+            val otherUserName = userDoc.getString("name") ?: "Desconocido"
+            val otherUserImage = userDoc.getString("profileImage") ?: ""
+
+            // Determinar si el usuario actual es comprador o vendedor
+            val roleLabel = if (currentUserId == userIDs[0]) {
+                "Comprador $productName"
+            } else {
+                "Vendedor $productName"
+            }
+
+            Chat(
+                chatId = chatId,
+                otherUserName = otherUserName,
+                lastMessage = lastMessage,
+                otherUserImage = otherUserImage,
+                roleLabel = roleLabel
+            )
+
+        } catch (e: Exception) {
+            Log.w("Firestore", "Error al obtener info del chat", e)
+            null
+        }
     }
 }

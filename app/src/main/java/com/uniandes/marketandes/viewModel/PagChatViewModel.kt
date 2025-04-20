@@ -20,12 +20,27 @@ class PagChatViewModel : ViewModel() {
                 .whereArrayContains("userIDs", userUID)
                 .get()
                 .addOnSuccessListener { result ->
-                    val chatList = result.documents.map { document ->
+                    val chatList = result.documents.mapNotNull { document ->
                         val chatID = document.id
-                        val userName = document.getString("userName") ?: "Usuario"
+                        val userIDs = document.get("userIDs") as? List<String> ?: return@mapNotNull null
+                        val userNames = document.get("userName") as? List<String> ?: return@mapNotNull null
+                        val userImages = document.get("userImage") as? List<String> ?: return@mapNotNull null
                         val lastMessage = document.getString("lastMessage") ?: "No hay mensajes"
-                        val userImage = document.getString("userImage") ?: ""
-                        Chat(chatID, userName, lastMessage, userImage)
+                        val productName = document.getString("productName") ?: "Producto"
+
+                        // Identificar el otro usuario (que no soy yo)
+                        val otherIndex = if (userUID == userIDs[0]) 1 else 0
+                        val otherUserName = userNames.getOrNull(otherIndex) ?: "Usuario"
+                        val otherUserImage = userImages.getOrNull(otherIndex) ?: ""
+                        val roleLabel = if (userUID == userIDs[0]) "Comprador $productName" else "Vendedor $productName"
+
+                        Chat(
+                            chatId = chatID,
+                            otherUserName = otherUserName,
+                            lastMessage = lastMessage,
+                            otherUserImage = otherUserImage,
+                            roleLabel = roleLabel
+                        )
                     }
                     chats.value = chatList
                 }
