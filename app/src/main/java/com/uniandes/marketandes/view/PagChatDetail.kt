@@ -17,8 +17,12 @@ import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.model.Message
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uniandes.marketandes.viewModel.ChatDetailViewModel
 import com.uniandes.marketandes.viewModel.ChatDetailViewModelFactory
@@ -28,12 +32,16 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.uniandes.marketandes.local.AppDatabase
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailScreen(chatId: String, navController: NavHostController) {
-    val repository = ChatRepository(FirebaseFirestore.getInstance())  // Inicializa el repositorio
-    val viewModel: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(repository))  // Usa ViewModelFactory
+    val context = LocalContext.current
+    val messageDao = AppDatabase.getDatabase(context).messageDao()
+    val repository = ChatRepository(FirebaseFirestore.getInstance(), messageDao)
+    val viewModel: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(repository))
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserUID = currentUser?.uid ?: ""
@@ -41,11 +49,38 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
     val messages by viewModel.messages
     val message by viewModel.message
 
+    val productName = remember { mutableStateOf("Producto") }
+    val roleLabel = remember { mutableStateOf("Rol") }
+    val otherUserName = remember { mutableStateOf("Usuario") }
+    val otherUserImage = remember { mutableStateOf("") }
+
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(chatId) {
         viewModel.fetchMessages(chatId)
+
+        FirebaseFirestore.getInstance().collection("chats")
+            .document(chatId)
+            .get()
+            .addOnSuccessListener { document ->
+                productName.value = document.getString("productName") ?: "Producto"
+
+                val userIDs = document.get("userIDs") as? List<String>
+                val userNames = document.get("userName") as? List<String>
+                val userImages = document.get("userImage") as? List<String>
+
+                if (userIDs != null && userNames != null && userImages != null) {
+                    val otherIndex = if (currentUserUID == userIDs[0]) 1 else 0
+                    otherUserName.value = userNames.getOrNull(otherIndex) ?: "Usuario"
+                    otherUserImage.value = userImages.getOrNull(otherIndex) ?: ""
+                    roleLabel.value = if (currentUserUID == userIDs[0]) {
+                        "Comprador ${productName.value}"
+                    } else {
+                        "Vendedor ${productName.value}"
+                    }
+                }
+            }
     }
 
     LaunchedEffect(messages) {
@@ -57,6 +92,39 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+
+        // 🔵 Cabecera: imagen y nombre del otro usuario + rol
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        ) {
+            AsyncImage(
+                model = otherUserImage.value,
+                contentDescription = "Foto del otro usuario",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray),
+                contentScale = ContentScale.Crop
+            )
+
+            Column {
+                Text(
+                    text = otherUserName.value,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = roleLabel.value,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+
         LazyColumn(state = scrollState, modifier = Modifier.weight(1f)) {
             items(messages) { message ->
                 MessageBubble(message = message, currentUserUID = currentUserUID)
@@ -95,6 +163,7 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
+
 
 @Composable
 fun MessageBubble(message: Message, currentUserUID: String) {

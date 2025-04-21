@@ -3,18 +3,41 @@ package com.uniandes.marketandes.repository
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.model.Message
+import com.uniandes.marketandes.local.MessageDao
+import com.uniandes.marketandes.model.Chat
+import com.uniandes.marketandes.model.MessageEntity
 import kotlinx.coroutines.tasks.await
 
-class ChatRepository(private val db: FirebaseFirestore) {
+class ChatRepository(private val db: FirebaseFirestore, private val messageDao: MessageDao) {
 
+    // Obtener mensajes de la base de datos local primero y luego de Firestore
     suspend fun getMessages(chatId: String): List<Message> {
         return try {
+            // Primero obtenemos los mensajes desde la base de datos local (Room)
+            val localMessages = messageDao.getMessagesByChatId(chatId).map {
+                Message(text = it.text, senderId = it.senderId, timestamp = it.timestamp)
+            }
+
+            // Luego obtenemos los mensajes desde Firestore
             val snapshot = db.collection("chats")
                 .document(chatId)
                 .collection("messages")
                 .orderBy("timestamp")
                 .get()
                 .await()
+
+            // Convertir los mensajes de Firestore a Message y agregar a la base de datos local
+            snapshot.documents.forEach {
+                val messageEntity = MessageEntity(
+                    chatId = chatId,
+                    text = it.getString("text") ?: "",
+                    senderId = it.getString("senderId") ?: "",
+                    timestamp = it.getLong("timestamp") ?: 0L
+                )
+                insertMessage(messageEntity) // Insertar mensaje en Room
+            }
+
+            // Retornar los mensajes de Firestore
             snapshot.documents.map {
                 Message(
                     text = it.getString("text") ?: "",
@@ -22,12 +45,39 @@ class ChatRepository(private val db: FirebaseFirestore) {
                     timestamp = it.getLong("timestamp") ?: 0L
                 )
             }
+
         } catch (e: Exception) {
             Log.w("Firestore", "Error al cargar los mensajes", e)
             emptyList()
         }
     }
 
+    // Escuchar mensajes de Firestore en tiempo real
+    fun listenForMessages(chatId: String, onMessagesReceived: (List<Message>) -> Unit) {
+        db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("timestamp")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.w("Firestore", "Error al escuchar los mensajes", e)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val messages = snapshot.documents.map {
+                        Message(
+                            text = it.getString("text") ?: "",
+                            senderId = it.getString("senderId") ?: "",
+                            timestamp = it.getLong("timestamp") ?: 0L
+                        )
+                    }
+                    onMessagesReceived(messages) // Devolver los mensajes actualizados
+                }
+            }
+    }
+
+    // Enviar mensaje a Firestore y a la base de datos local
     suspend fun sendMessage(chatId: String, newMessage: Message): Boolean {
         return try {
             val messageMap = hashMapOf(
@@ -36,12 +86,23 @@ class ChatRepository(private val db: FirebaseFirestore) {
                 "timestamp" to newMessage.timestamp
             )
 
+            // Enviar mensaje a Firestore
             db.collection("chats")
                 .document(chatId)
                 .collection("messages")
                 .add(messageMap)
                 .await()
 
+            // Guardar el mensaje en la base de datos local (Room)
+            val messageEntity = MessageEntity(
+                chatId = chatId,
+                text = newMessage.text,
+                senderId = newMessage.senderId,
+                timestamp = newMessage.timestamp
+            )
+            insertMessage(messageEntity)
+
+            // Actualizar el último mensaje en Firestore
             updateLastMessage(chatId, newMessage.text)
             true
         } catch (e: Exception) {
@@ -50,17 +111,54 @@ class ChatRepository(private val db: FirebaseFirestore) {
         }
     }
 
-    private suspend fun updateLastMessage(chatId: String, lastMessageText: String) {
-        try {
-            val lastMessageUpdate = mapOf("lastMessage" to lastMessageText)
+    private suspend fun insertMessage(messageEntity: MessageEntity) {
+        // Insertar mensaje en la base de datos local
+        messageDao.insert(messageEntity)
+    }
 
-            db.collection("chats")
-                .document(chatId)
-                .update(lastMessageUpdate)
-                .await()
-            Log.d("Firestore", "Último mensaje actualizado con éxito")
+    private suspend fun updateLastMessage(chatId: String, lastMessageText: String) {
+        val lastMessageUpdate = mapOf("lastMessage" to lastMessageText)
+
+        // Actualizar el campo "lastMessage" en Firestore
+        db.collection("chats")
+            .document(chatId)
+            .update(lastMessageUpdate)
+            .await()
+        Log.d("Firestore", "Último mensaje actualizado con éxito")
+    }
+
+    suspend fun getChatInfo(chatId: String, currentUserId: String): Chat? {
+        return try {
+            val doc = db.collection("chats").document(chatId).get().await()
+
+            val userIDs = doc.get("userIDs") as? List<String> ?: return null
+            val lastMessage = doc.getString("lastMessage") ?: ""
+            val productName = doc.getString("productName") ?: "Producto"
+            val otherUserId = userIDs.firstOrNull { it != currentUserId } ?: return null
+
+            // Consultar info del otro usuario
+            val userDoc = db.collection("users").document(otherUserId).get().await()
+            val otherUserName = userDoc.getString("name") ?: "Desconocido"
+            val otherUserImage = userDoc.getString("profileImage") ?: ""
+
+            // Determinar si el usuario actual es comprador o vendedor
+            val roleLabel = if (currentUserId == userIDs[0]) {
+                "Comprador $productName"
+            } else {
+                "Vendedor $productName"
+            }
+
+            Chat(
+                chatId = chatId,
+                otherUserName = otherUserName,
+                lastMessage = lastMessage,
+                otherUserImage = otherUserImage,
+                roleLabel = roleLabel
+            )
+
         } catch (e: Exception) {
-            Log.w("Firestore", "Error al actualizar el último mensaje", e)
+            Log.w("Firestore", "Error al obtener info del chat", e)
+            null
         }
     }
 }
