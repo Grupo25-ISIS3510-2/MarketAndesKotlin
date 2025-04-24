@@ -6,10 +6,9 @@ plugins {
     // Add the Google services Gradle plugin
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp") version "2.0.0-1.0.21"
-
-
-
+    id("org.jetbrains.kotlin.kapt")
 }
+
 
 android {
     namespace = "com.uniandes.marketandes"
@@ -93,6 +92,10 @@ dependencies {
     implementation ("androidx.navigation:navigation-compose:2.5.3")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.firebase.auth.ktx)
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
+    kapt ("com.github.bumptech.glide:compiler:4.16.0")
+
 
     //Datos biometricos
     implementation ("androidx.biometric:biometric:1.1.0")

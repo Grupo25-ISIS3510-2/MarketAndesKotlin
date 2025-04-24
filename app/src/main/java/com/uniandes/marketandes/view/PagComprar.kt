@@ -25,6 +25,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import com.uniandes.marketandes.model.Product
 import com.uniandes.marketandes.viewModel.ProductViewModel
+import com.uniandes.marketandes.view.GlideImage
+
 
 
 @Composable
@@ -65,8 +67,8 @@ fun ProductCard(product: Product, navController: NavHostController) {
             .padding(8.dp)
             .clickable { navController.navigate("detalle_compra/${product.id}") }
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(product.imageURL),
+        GlideImage(
+            imageUrl = product.imageURL,
             contentDescription = "Imagen de ${product.name}",
             contentScale = ContentScale.Crop,
             modifier = Modifier
