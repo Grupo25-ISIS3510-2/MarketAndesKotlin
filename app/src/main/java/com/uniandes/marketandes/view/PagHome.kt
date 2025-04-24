@@ -46,7 +46,7 @@ fun PagHome(navController: NavHostController) {
     val productos by productViewModel.products.collectAsStateWithLifecycle()
     val networkStatus by productViewModel.networkStatus.collectAsStateWithLifecycle()
     val categoriaFavorita by favoritosViewModel.categoriaFavorita.collectAsState()
-    val toastMessage by favoritosViewModel.mensajeToast.collectAsState()
+    val toastMessage by favoritosViewModel.mensajeVisible.collectAsState()
 
     Log.d("Conexion", "$networkStatus")
     // Mostrar Toast por falta de conexión

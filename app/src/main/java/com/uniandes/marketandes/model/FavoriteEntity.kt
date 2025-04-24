@@ -12,5 +12,7 @@ data class FavoriteEntity(
     val category: String,
     val description: String,
     val sellerID: String,
-    val sellerRating: Int
+    val sellerRating: Int,
+    val synced: Boolean = false // Esta columna indica si el producto se ha sincronizado
+
 )
