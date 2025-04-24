@@ -29,18 +29,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
-import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.local.AppDatabase
 import com.uniandes.marketandes.model.Product
-import com.uniandes.marketandes.util.NetworkConnectivityObserver
-import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
-import kotlinx.coroutines.tasks.await
+import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewModel.ProductDetailViewModel
-import java.util.Date
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @Composable
 fun PagCompraDetail(
@@ -61,6 +58,9 @@ fun PagCompraDetail(
     LaunchedEffect(productId) {
         detailViewModel.loadProduct(productId)
     }
+
+    val connectivityState = connectivityObserver.isConnected.collectAsState(initial = false)
+    val isOffline = !connectivityState.value
 
     product?.let {
         Column(
@@ -166,11 +166,21 @@ fun PagCompraDetail(
                             }
                         }
 
+
+
                         Toast.makeText(
                             context,
-                            if (yaEsFavorito) "Eliminado de favoritos" else "Guardado en favoritos",
+                            when {
+                                isOffline && !yaEsFavorito -> "Guardado en favoritos, se sincronizará cuando vuelva la conexión"
+                                isOffline && yaEsFavorito -> "Eliminado de favoritos, se sincronizará cuando vuelva la conexión"
+                                !isOffline && yaEsFavorito -> "Eliminado de favoritos"
+                                !isOffline && !yaEsFavorito -> "Guardado en favoritos"
+                                else -> "Guardado en favoritos, se sincronizará cuando vuelva la conexión"
+                            },
                             Toast.LENGTH_SHORT
                         ).show()
+
+
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (yaEsFavorito) Color(0xFFD32F2F) else Color(0xFFFFC107)
@@ -225,9 +235,6 @@ fun PagCompraDetail(
                     )
                 }
             }
-
-
         }
     } ?: CircularProgressIndicator(modifier = Modifier.padding(16.dp))
 }
-

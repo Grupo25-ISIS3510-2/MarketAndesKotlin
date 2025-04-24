@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +41,8 @@ fun PagFavoritos(navController: NavHostController) {
     val viewModel: FavoritosViewModel = viewModel(factory = factory)
 
     val productos by viewModel.productosFavoritos.collectAsState()
-    val toastMessage by viewModel.mensajeToast.collectAsState()
+    val toastMessage by viewModel.mensajeVisible.collectAsState()
+    val mensajeVisible by viewModel.mensajeVisible.collectAsState()
 
     // ✅ Mostrar Toast cuando hay mensaje
     LaunchedEffect(toastMessage) {
@@ -49,6 +51,9 @@ fun PagFavoritos(navController: NavHostController) {
             viewModel.mensajeMostrado()
         }
     }
+
+    // Mostrar mensaje cuando no hay conexión
+    val isOffline = connectivityObserver.isConnected.collectAsState(initial = true).value.not()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -61,12 +66,28 @@ fun PagFavoritos(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(productos) { producto ->
-                FavoriteProductCard(product = producto, navController, viewModel)
+        // Si estamos desconectados, mostramos un mensaje sobre la sincronización
+        if (isOffline) {
+            Text(
+                text = "Sin conexión. Mostrando favoritos locales.",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        // Mostrar un indicador de carga si estamos sincronizando
+        if (productos.isEmpty() && !isOffline) {
+            // Indicador de carga si no hay productos y estamos en línea
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(productos) { producto ->
+                    FavoriteProductCard(product = producto, navController, viewModel)
+                }
             }
         }
     }

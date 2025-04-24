@@ -18,6 +18,13 @@ interface FavoriteDao {
     @Query("SELECT * FROM cached_favorites")
     fun observeAllCachedFavorites(): Flow<List<FavoriteEntity>>
 
+    @Query("DELETE FROM cached_favorites WHERE id = :productId")
+    suspend fun deleteFavorite(productId: String)
 
+    @Query("SELECT * FROM cached_favorites WHERE synced = 0") // Asegúrate de tener una columna `synced`
+    suspend fun getPendingFavorites(): List<FavoriteEntity>
+
+    @Query("UPDATE cached_favorites SET synced = 1 WHERE id = :productoId")
+    suspend fun markAsSynced(productoId: String)
 
 }
