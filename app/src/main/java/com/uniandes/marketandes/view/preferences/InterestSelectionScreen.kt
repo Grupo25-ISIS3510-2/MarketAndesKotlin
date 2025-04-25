@@ -6,9 +6,12 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -66,14 +69,14 @@ fun InterestSelectionScreen(
         Log.d("InterestScreen", "Intereses guardadas localmente: ${interest.toSet()}")
     }
 
-    // Sincronizar las intereses cuando se restablezca la conexión
+    // Sincronizar los intereses cuando se restablezca la conexión
     fun syncInterestWhenOnline() {
         if (!isOffline) {
             if (userId != null) {
                 Log.d("InterestScreen", "Sincronizando intereses con Firebase")
                 viewModel.saveInterests(userId) {
                     Log.d("InterestScreen", "Sincronización exitosa con Firebase")
-                    // Limpiar las intereses guardadas localmente después de la sincronización
+                    // Limpiar los intereses guardados localmente después de la sincronización
                     val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
                     sharedPreferences.edit().remove("saved_interests").apply()
                     Toast.makeText(context, "Intereses actualizados", Toast.LENGTH_SHORT).show()
@@ -104,6 +107,8 @@ fun InterestSelectionScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
@@ -155,7 +160,7 @@ fun InterestSelectionScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.weight(1f))  // Aquí aseguramos que el botón quede al fondo
 
         Button(
             onClick = {
@@ -184,6 +189,7 @@ fun InterestSelectionScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
+                .padding(vertical = 1.dp)  // Añadido padding adicional para asegurar el espacio
         ) {
             Text(
                 text = if (isEdit) "GUARDAR CAMBIOS" else "CONTINUAR",
@@ -193,7 +199,7 @@ fun InterestSelectionScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        //Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

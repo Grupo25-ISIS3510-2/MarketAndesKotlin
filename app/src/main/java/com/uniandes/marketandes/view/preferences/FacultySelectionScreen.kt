@@ -6,9 +6,12 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -105,6 +108,8 @@ fun FacultySelectionScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
@@ -156,14 +161,34 @@ fun FacultySelectionScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))  // Espacio antes del botón
 
         Button(
             onClick = {
                 if (userId != null) {
-                    saveFacultiesLocally(context = navController.context, faculties = selectedFaculties)
-                    Log.d("FacultyScreenOFFLINE", "Guardando facultades localmente $selectedFaculties")
-                    syncFacultiesWhenOnline()
+                    Log.d("FacultyScreen", "Facultades seleccionadas: $selectedFaculties")
+
+                    // Si estamos offline, guardamos localmente las facultades seleccionadas
+                    if (isOffline) {
+                        saveFacultiesLocally(context = navController.context, faculties = selectedFaculties)
+                        Log.d("FacultyScreenOFFLINE", "Guardando facultades localmente: $selectedFaculties")
+                    } else {
+                        // Si estamos online, sincronizamos con Firebase
+                        viewModel.saveFaculties(userId) {
+                            Log.d("FacultyScreen", "Facultades sincronizadas con Firebase")
+                            // Limpiar facultades guardadas localmente después de la sincronización
+                            val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+                            sharedPreferences.edit().remove("saved_faculties").apply()
+                            Toast.makeText(context, "Facultades actualizadas", Toast.LENGTH_SHORT).show()
+
+                            // Navegar dependiendo de si estamos editando o no
+                            if (isEdit) {
+                                navController.popBackStack()  // Volver atrás si estamos en modo de edición
+                            } else {
+                                navController.navigate("interest_selection")  // Ir a la siguiente pantalla si no
+                            }
+                        }
+                    }
                 } else {
                     Log.e("FacultySelectionScreen", "Error: Usuario no autenticado")
                 }
