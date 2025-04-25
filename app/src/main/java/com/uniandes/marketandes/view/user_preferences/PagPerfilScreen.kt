@@ -1,4 +1,5 @@
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,21 +13,30 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
 import com.uniandes.marketandes.view.user_preferences.PerfilViewModel
+
 
 @Composable
 fun PerfilScreen(
     navController: NavHostController,
     viewModel: PerfilViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val perfilState by viewModel.perfilState.collectAsState()
     val user = FirebaseAuth.getInstance().currentUser
     val uid = user?.uid
+    val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+
+
+    val connectivityState = connectivityObserver.isConnected.collectAsState(initial = false)
+    val isOffline = !connectivityState.value
 
     LaunchedEffect(uid) {
         if (uid != null) {
@@ -34,6 +44,10 @@ fun PerfilScreen(
             Log.d("PerfilScreen", "Cargando perfil de usuario $uid")
         }
     }
+
+
+
+
 
     Column(
         modifier = Modifier
@@ -120,6 +134,15 @@ fun PerfilScreen(
                     onClick = {
                         uid?.let {
                             viewModel.guardarPerfil()
+                            if (isOffline)
+                            {
+                                Toast.makeText(context, "Datos de perfil guardados, se sincronizará cuando regrese la conexión", Toast.LENGTH_SHORT).show()
+                            }
+                            else
+                            {
+                                Toast.makeText(context, "Perfil actualizado", Toast.LENGTH_SHORT).show()
+                            }
+
                             Log.d("PerfilScreen", "Datos guardados para usuario $uid")
                         }
                     },

@@ -1,6 +1,8 @@
 package com.uniandes.marketandes.view.preferences
 
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,11 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
 
 @Composable
 fun FacultySelectionScreen(
@@ -33,6 +38,10 @@ fun FacultySelectionScreen(
 
     val selectedFaculties = remember { mutableStateListOf<String>() }
     val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val connectivityObserver = remember { NetworkConnectivityObserver(navController.context) }
+    val connectivityState = connectivityObserver.isConnected.collectAsState(initial = false)
+    val isOffline = !connectivityState.value
+    val context = LocalContext.current
 
     // Preseleccionar facultades una sola vez al iniciar
     LaunchedEffect(Unit) {
@@ -45,6 +54,49 @@ fun FacultySelectionScreen(
                 selectedFaculties.clear()
                 selectedFaculties.addAll(savedFaculties)
                 viewModel.selectedFaculties = selectedFaculties
+            }
+        }
+    }
+
+    // Guardar facultades localmente si estamos offline
+    fun saveFacultiesLocally(context: Context, faculties: List<String>) {
+        val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putStringSet("saved_faculties", faculties.toSet())
+        editor.apply()
+        Log.d("FacultyScreen", "Facultades guardadas localmente: ${faculties.toSet()}")
+    }
+
+    // Sincronizar las facultades cuando se restablezca la conexión
+    fun syncFacultiesWhenOnline() {
+        if (!isOffline) {
+            if (userId != null) {
+                Log.d("FacultyScreen", "Sincronizando facultades con Firebase")
+                viewModel.saveFaculties(userId) {
+                    Log.d("FacultyScreen", "Sincronización exitosa con Firebase")
+                    // Limpiar las facultades guardadas localmente después de la sincronización
+                    val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+                    sharedPreferences.edit().remove("saved_faculties").apply()
+                    Toast.makeText(context, "Facultades actualizadas", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+
+    // Observar el estado de conectividad y sincronizar cuando vuelva a estar en línea
+    LaunchedEffect(connectivityState.value) {
+        Log.d("FacultyScreen", "Conectividad cambiada: ${connectivityState.value}")
+        if (!isOffline) {
+            Log.d("FacultyScreen", "Conexión restaurada. Sincronizando facultades guardadas localmente.")
+            val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+            val savedFaculties = sharedPreferences.getStringSet("saved_faculties", emptySet())?.toList() ?: emptyList()
+            if (savedFaculties.isNotEmpty() && userId != null) {
+                Log.d("FacultyScreen", "Sincronizando facultades guardadas localmente: $savedFaculties")
+                viewModel.saveFaculties(userId) {
+                    sharedPreferences.edit().remove("saved_faculties").apply()
+                    Log.d("FacultyScreen", "Facultades sincronizadas con éxito")
+                }
             }
         }
     }
@@ -109,14 +161,9 @@ fun FacultySelectionScreen(
         Button(
             onClick = {
                 if (userId != null) {
-                    Log.d("FacultyScreen", "Facultades seleccionadas: $selectedFaculties")
-                    viewModel.saveFaculties(userId) {
-                        if (isEdit) {
-                            navController.popBackStack()
-                        } else {
-                            navController.navigate("interest_selection")
-                        }
-                    }
+                    saveFacultiesLocally(context = navController.context, faculties = selectedFaculties)
+                    Log.d("FacultyScreenOFFLINE", "Guardando facultades localmente $selectedFaculties")
+                    syncFacultiesWhenOnline()
                 } else {
                     Log.e("FacultySelectionScreen", "Error: Usuario no autenticado")
                 }
