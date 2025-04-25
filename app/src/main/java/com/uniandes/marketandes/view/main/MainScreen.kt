@@ -40,27 +40,23 @@ import com.uniandes.marketandes.view.preferences.FacultySelectionScreen
 import com.uniandes.marketandes.view.preferences.InterestSelectionScreen
 import kotlinx.coroutines.launch
 import android.content.Intent
+import android.util.Log
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
 import com.uniandes.marketandes.view.favorites.PagFavoritos
 import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
 import com.uniandes.marketandes.viewModel.ProductViewModelFactory
-
-import com.uniandes.marketandes.viewModel.ProductDetailViewModel
-import com.uniandes.marketandes.viewModel.PagChatViewModel
-import com.uniandes.marketandes.viewModel.PagChatMapViewModel
-
-
-
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -193,6 +189,7 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
         composable("pag_perfil_screen") { PerfilScreen(navController) }
         composable("pag_favoritos") { PagFavoritos(navController) }
+        composable("pag_misPublicaciones") { Pag_misPublicaciones(navController) }
         composable(
             route = "edit_faculties?preselected={preselected}",
             arguments = listOf(
@@ -316,8 +313,34 @@ fun DrawerContent(navController: NavController, onClose: () -> Unit) {
                     onClose()
                 }
             )
-            DrawerItem(icon = Icons.Outlined.GridView, text = "Mis publicaciones")
-            DrawerItem(icon = Icons.Outlined.History, text = "Historial")
+            DrawerItem(icon = Icons.Outlined.GridView, text = "Mis publicaciones",
+                onClick = {
+                    val firestore = FirebaseFirestore.getInstance()
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "anonimo"
+                    val origen = navController.currentBackStackEntry?.destination?.route ?: "desconocido"
+
+                    val clickData = hashMapOf(
+                        "item_name" to "Mis publicaciones",
+                        "timestamp" to FieldValue.serverTimestamp(),
+                        "user_id" to userId,
+                        "origen" to origen
+                    )
+
+                    // Agrega la información a la colección de clics
+                    firestore.collection("interaccion_MisPublicaciones")
+                        .add(clickData)
+                        .addOnSuccessListener {
+                            Log.d("Firestore", "Evento guardado con éxito")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.w("Firestore", "Error al guardar el evento", e)
+                        }
+
+                    navController.navigate("pag_misPublicaciones")
+                    onClose()
+                }
+            )
+
             DrawerItem(icon = Icons.Outlined.FavoriteBorder, text = "Mis Favoritos",
                 onClick = {
                     navController.navigate("pag_favoritos")
