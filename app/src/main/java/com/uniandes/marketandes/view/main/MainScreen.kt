@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import android.content.Intent
 import android.util.Log
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -181,6 +182,7 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
             val productViewModel: ProductViewModel = viewModel()
             PagComprar(navController, productViewModel)
         }
+        composable("pag_impulsar") { PagImpulsar(navController) }
 
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome(navController) }
@@ -348,6 +350,14 @@ fun DrawerContent(navController: NavController, onClose: () -> Unit) {
                 }
             )
             DrawerItem(icon = Icons.Outlined.ShoppingBag, text = "Mis compras")
+            DrawerItem(icon = Icons.Outlined.Star,
+                text = "Productos para Impulsar",
+                onClick = {
+                    navController.navigate("pag_impulsar")
+                    onClose()
+                }
+            )
+
             DrawerItem(
                 icon = Icons.Outlined.Storefront,
                 text = "Tiendas recomendadas",
