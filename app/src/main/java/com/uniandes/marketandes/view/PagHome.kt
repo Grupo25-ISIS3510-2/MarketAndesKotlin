@@ -49,11 +49,10 @@ fun PagHome(navController: NavHostController) {
     val toastMessage by favoritosViewModel.mensajeVisible.collectAsState()
 
     Log.d("Conexion", "$networkStatus")
-    // Mostrar Toast por falta de conexión
 
     LaunchedEffect(networkStatus) {
         if (networkStatus != NetworkStatus.Available) {
-            delay(5000) // ⏳ Espera 5 segundos
+            delay(5000)
             Toast.makeText(context, "Estás sin conexión. Mostrando productos en caché.", Toast.LENGTH_LONG).show()
         }
     }

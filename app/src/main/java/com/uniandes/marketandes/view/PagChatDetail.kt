@@ -93,7 +93,6 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-        // 🔵 Cabecera: imagen y nombre del otro usuario + rol
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
