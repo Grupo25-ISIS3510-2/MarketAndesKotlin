@@ -28,7 +28,6 @@ class PagChatViewModel : ViewModel() {
                         val lastMessage = document.getString("lastMessage") ?: "No hay mensajes"
                         val productName = document.getString("productName") ?: "Producto"
 
-                        // Identificar el otro usuario (que no soy yo)
                         val otherIndex = if (userUID == userIDs[0]) 1 else 0
                         val otherUserName = userNames.getOrNull(otherIndex) ?: "Usuario"
                         val otherUserImage = userImages.getOrNull(otherIndex) ?: ""
