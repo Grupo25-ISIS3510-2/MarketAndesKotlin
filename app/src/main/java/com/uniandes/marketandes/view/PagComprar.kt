@@ -5,6 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -79,32 +80,36 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        Row(
+        LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterButton(
-                categoryName = "Todos",
-                icon = Icons.Filled.Apps,
-                isSelected = selectedCategory == "Todos",
-                onClick = {
-                    selectedCategory = "Todos"
-                    incrementCategoryInteraction("Todos")
-                }
-            )
-            categories.forEach { (categoryName, icon) ->
+            item {
                 FilterButton(
-                    categoryName = categoryName,
-                    icon = icon,
-                    isSelected = selectedCategory == categoryName,
+                    categoryName = "Todos",
+                    icon = Icons.Filled.Apps,
+                    isSelected = selectedCategory == "Todos",
                     onClick = {
-                        selectedCategory = categoryName
-                        incrementCategoryInteraction(categoryName)
+                        selectedCategory = "Todos"
+                        incrementCategoryInteraction("Todos")
                     }
                 )
+            }
+
+            categories.forEach { (categoryName, icon) ->
+                item {
+                    FilterButton(
+                        categoryName = categoryName,
+                        icon = icon,
+                        isSelected = selectedCategory == categoryName,
+                        onClick = {
+                            selectedCategory = categoryName
+                            incrementCategoryInteraction(categoryName)
+                        }
+                    )
+                }
             }
         }
 
@@ -201,4 +206,3 @@ fun ProductCard(product: Product, navController: NavHostController) {
         }
     }
 }
-
