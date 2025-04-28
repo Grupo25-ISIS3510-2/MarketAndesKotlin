@@ -19,7 +19,7 @@ import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.*
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.R
-import com.uniandes.marketandes.viewModel.PagChatMapViewModel
+import com.uniandes.marketandes.viewModel.ChatMapViewModel
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -31,7 +31,7 @@ import kotlinx.coroutines.withContext
 fun PagChatMap(
     chatId: String,
     navController: NavHostController,
-    viewModel: PagChatMapViewModel = remember { PagChatMapViewModel() }
+    viewModel: ChatMapViewModel = remember { ChatMapViewModel() }
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }

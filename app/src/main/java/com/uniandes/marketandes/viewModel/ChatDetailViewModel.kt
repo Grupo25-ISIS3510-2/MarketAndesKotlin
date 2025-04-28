@@ -12,6 +12,7 @@ class ChatDetailViewModel(private val repository: ChatRepository) : ViewModel() 
     val messages = mutableStateOf<List<Message>>(emptyList())
     val message = mutableStateOf("")
 
+    // Fetch messages from the local database (Room) and Firestore
     fun fetchMessages(chatId: String) {
         viewModelScope.launch {
             val loadedMessages = repository.getMessages(chatId)
@@ -23,6 +24,7 @@ class ChatDetailViewModel(private val repository: ChatRepository) : ViewModel() 
         }
     }
 
+    // Send message to Firestore and local database
     fun sendMessage(chatId: String, userUID: String) {
         if (message.value.isNotEmpty()) {
             val newMessage = Message(

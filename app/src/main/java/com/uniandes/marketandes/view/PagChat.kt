@@ -27,12 +27,12 @@ import androidx.core.app.ActivityCompat
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.model.Chat
-import com.uniandes.marketandes.viewModel.PagChatViewModel
+import com.uniandes.marketandes.viewModel.ChatViewModel
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 
 @Composable
-fun PagChat(navController: NavHostController, viewModel: PagChatViewModel = remember { PagChatViewModel() }) {
+fun PagChat(navController: NavHostController, viewModel: ChatViewModel = remember { ChatViewModel() }) {
     val currentUserUID = FirebaseAuth.getInstance().currentUser?.uid
     val context = LocalContext.current
     val fusedLocationClient = remember {

@@ -283,7 +283,7 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("chatDetail/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId")
             if (chatId != null) {
-                ChatDetailScreen(chatId = chatId, navController = navController)
+                PagChatDetail(chatId = chatId)
             }
         }
         composable("confirmarUbicacion/{chatId}/{nombreUbicacion}/{imagenUrl}") {
