@@ -45,7 +45,6 @@ class NetworkConnectivityObserver(context: Context) : ConnectivityObserver {
         }
     }.distinctUntilChanged()
 
-    // ✅ Agregado: isConnected como Flow<Boolean>
     override val isConnected: Flow<Boolean>
         get() = observe().map { status -> status == NetworkStatus.Available }
 }
