@@ -30,7 +30,6 @@ class ProductViewModel(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
 
-
     init
     {
         viewModelScope.launch {
@@ -54,8 +53,6 @@ class ProductViewModel(
     fun resetToast() {
         _toastMessage.value = null
     }
-
-
 
     private fun observeNetwork()
     {

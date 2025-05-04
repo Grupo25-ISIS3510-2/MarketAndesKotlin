@@ -1,6 +1,5 @@
 package com.uniandes.marketandes.viewModel
 
-
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,7 +9,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.uniandes.marketandes.model.Product
-import com.uniandes.marketandes.repository.ProductRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 

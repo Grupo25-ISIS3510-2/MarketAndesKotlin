@@ -165,7 +165,7 @@ fun PagChatMap(
     }
 }
 
-// Funciones de cálculo de ruta idénticas a las tuyas...
+
 private val httpClient = OkHttpClient()
 suspend fun fetchRoute(origin: LatLng, destination: LatLng, apiKey: String): List<LatLng> =
     withContext(Dispatchers.IO) {

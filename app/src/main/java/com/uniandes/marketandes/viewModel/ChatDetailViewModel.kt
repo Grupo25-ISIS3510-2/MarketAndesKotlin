@@ -39,7 +39,7 @@ class ChatDetailViewModel(private val repository: ChatRepository) : ViewModel() 
                 // Send message in background
                 val success = repository.sendMessage(chatId, newMessage)
                 if (success) {
-                    message.value = ""  // Clear message input
+                    message.value = ""
                 } else {
                     Log.w("ChatDetailViewModel", "Error al enviar el mensaje")
                 }

@@ -1,8 +1,6 @@
 package com.uniandes.marketandes.view
 
-import android.content.Context
 import android.media.MediaPlayer
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.foundation.Image
@@ -36,8 +34,6 @@ import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewModel.ProductDetailViewModel
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 
 @Composable
 fun PagCompraDetail(

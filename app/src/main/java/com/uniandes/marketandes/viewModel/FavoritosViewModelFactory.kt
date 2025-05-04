@@ -3,8 +3,6 @@ package com.uniandes.marketandes.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.uniandes.marketandes.local.FavoriteDao
-import com.uniandes.marketandes.local.ProductDao
-import com.uniandes.marketandes.repository.FavoriteRepository
 import com.uniandes.marketandes.util.ConnectivityObserver
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 
