@@ -1,6 +1,5 @@
 package com.uniandes.marketandes.view
 
-import androidx.compose.animation.VectorConverter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -177,7 +176,6 @@ fun PagChatDetail(chatId: String) {
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
-
 
 @Composable
 fun MessageBubble(message: Message, currentUserUID: String) {

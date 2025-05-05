@@ -49,5 +49,4 @@ class FavoriteRepository(
         return dao.observeAllFavorites()
             .map { it.map { entity -> entity.toDomainF() } }
     }
-
 }

@@ -12,19 +12,21 @@ class ChatDetailViewModel(private val repository: ChatRepository) : ViewModel() 
     val messages = mutableStateOf<List<Message>>(emptyList())
     val message = mutableStateOf("")
 
-    // Fetch messages from the local database (Room) and Firestore
+    // Function to fetch messages asynchronously using coroutines
     fun fetchMessages(chatId: String) {
         viewModelScope.launch {
+            // Fetch messages from local storage first
             val loadedMessages = repository.getMessages(chatId)
             messages.value = loadedMessages
 
+            // Then, listen for new messages from Firestore asynchronously
             repository.listenForMessages(chatId) { remoteMessages ->
                 messages.value = remoteMessages
             }
         }
     }
 
-    // Send message to Firestore and local database
+    // Function to send a message asynchronously
     fun sendMessage(chatId: String, userUID: String) {
         if (message.value.isNotEmpty()) {
             val newMessage = Message(
@@ -34,6 +36,7 @@ class ChatDetailViewModel(private val repository: ChatRepository) : ViewModel() 
             )
 
             viewModelScope.launch {
+                // Send message in background
                 val success = repository.sendMessage(chatId, newMessage)
                 if (success) {
                     message.value = ""
