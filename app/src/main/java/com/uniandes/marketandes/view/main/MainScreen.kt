@@ -214,15 +214,17 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
 
         composable(
-            route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}",
+            route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}&destinoDireccion={destinoDireccion}",
             arguments = listOf(
                 navArgument("destinoNombre") { defaultValue = ""; nullable = true },
-                navArgument("destinoImagen") { defaultValue = ""; nullable = true }
+                navArgument("destinoImagen") { defaultValue = ""; nullable = true },
+                navArgument("destinoDireccion") { defaultValue = ""; nullable = true }
             )
         ) { backStackEntry ->
             val destinoNombre = backStackEntry.arguments?.getString("destinoNombre")
             val destinoImagen = backStackEntry.arguments?.getString("destinoImagen")
-            PagStoreMaps(navController, destinoNombre, destinoImagen)
+            val destinoDireccion = backStackEntry.arguments?.getString("destinoDireccion")
+            PagStoreMaps(navController, destinoNombre, destinoImagen, destinoDireccion)
         }
 
 
@@ -289,7 +291,7 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("confirmarUbicacion/{chatId}/{nombreUbicacion}/{imagenUrl}") {
             ConfirmarUbicacionScreen(navController = navController)
         }
-        composable("ubicaciondetail/{nombreUbicacion}/{imagenUrl}") {
+        composable("ubicaciondetail/{nombreUbicacion}/{imagenUrl}/{direccion}") {
             UbicacionDetail(navController)
         }
     }
