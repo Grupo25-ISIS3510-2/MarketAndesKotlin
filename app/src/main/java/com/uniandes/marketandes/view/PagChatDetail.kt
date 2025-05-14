@@ -107,8 +107,8 @@ fun PagChatDetail(chatId: String) {
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
         ) {
-            AsyncImage(
-                model = otherUserImage.value,
+            GlideImage(
+                imageUrl = otherUserImage.value,
                 contentDescription = "Foto del otro usuario",
                 modifier = Modifier
                     .size(48.dp)
