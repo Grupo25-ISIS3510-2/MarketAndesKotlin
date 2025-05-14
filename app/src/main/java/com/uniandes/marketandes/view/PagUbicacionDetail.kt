@@ -117,7 +117,6 @@ fun UbicacionDetail (navController: NavHostController) {
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A9396))
         )
 
-
         {
             Text("Ir", color = Color.White)
         }
