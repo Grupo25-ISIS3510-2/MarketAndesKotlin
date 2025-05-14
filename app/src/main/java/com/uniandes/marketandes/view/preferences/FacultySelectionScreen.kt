@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
@@ -69,6 +70,9 @@ fun FacultySelectionScreen(
         editor.apply()
         Log.d("FacultyScreen", "Facultades guardadas localmente: ${faculties.toSet()}")
     }
+
+
+
 
     // Sincronizar las facultades cuando se restablezca la conexión
     fun syncFacultiesWhenOnline() {

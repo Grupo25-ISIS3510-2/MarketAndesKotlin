@@ -12,6 +12,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AuthenticationViewModel : ViewModel()
 {
@@ -63,7 +65,9 @@ class AuthenticationViewModel : ViewModel()
                 val result = auth.signInWithEmailAndPassword(emailValue, passwordValue).await()
 
                 _isAuthenticated.value = true
-                saveCredentialSafety(context, emailValue, passwordValue)
+                withContext(Dispatchers.IO) {
+                    saveCredentialSafety(context, emailValue, passwordValue)
+                }
                 home()
             }
             catch (e: Exception)
@@ -131,37 +135,31 @@ class AuthenticationViewModel : ViewModel()
 
     fun loginWithStoredCredentials(context: Context, home: () -> Unit)
     {
-        val credentials = getCredentialSafety(context)
-
-        if (credentials != null)
-        {
-            val (email, password) = credentials
-
-            Log.d("MarketAndesDebug", "Intentando login con credenciales almacenadas: $email / $password")
-
+        viewModelScope.launch {
             _isLoading.value = true
-            viewModelScope.launch {
-                try
-                {
+            try {
+                val credentials = withContext(Dispatchers.IO) {
+                    getCredentialSafety(context)
+                }
+
+                if (credentials != null) {
+                    val (email, password) = credentials
+
+                    Log.d("MarketAndesDebug", "Intentando login con credenciales almacenadas: $email / $password")
+
                     auth.signInWithEmailAndPassword(email, password).await()
                     _isAuthenticated.value = true
                     home()
+                } else {
+                    Log.e("MarketAndesLogin", "No se encontraron credenciales almacenadas")
+                    _loginError.value = "No se encontraron credenciales guardadas"
                 }
-                catch (e: Exception)
-                {
-                    Log.e("MarketAndesLogin", "Error en login con huella: ${e.message}")
-                    _loginError.value = e.message
-                }
-                finally
-                {
-                    _isLoading.value = false
-                }
+            } catch (e: Exception) {
+                Log.e("MarketAndesLogin", "Error en login con huella: ${e.message}")
+                _loginError.value = e.message
+            } finally {
+                _isLoading.value = false
             }
-        }
-        else
-        {
-            Log.e("MarketAndesLogin", "No se encontraron credenciales almacenadas")
-            _loginError.value = "No se encontraron credenciales guardadas"
         }
     }
 

@@ -8,78 +8,79 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
-class UserPreferencesViewModel : ViewModel()
-{
+class UserPreferencesViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
 
     var selectedFaculties by mutableStateOf<List<String>>(emptyList())
     var selectedInterests by mutableStateOf<List<String>>(emptyList())
 
-    fun saveFaculties(userId: String, onSuccess: () -> Unit)
-    {
+    // Guardar las facultades seleccionadas
+    fun saveFaculties(userId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            try
-            {
-                val userRef = db.collection("users").document(userId)
-                userRef.set(mapOf("faculties" to selectedFaculties), SetOptions.merge()).await()
+            try {
+                // Realizamos la operación en segundo plano
+                withContext(Dispatchers.IO) {
+                    val userRef = db.collection("users").document(userId)
+                    userRef.set(mapOf("faculties" to selectedFaculties), SetOptions.merge()).await()
+                }
                 Log.d("Firestore", "Facultades guardadas exitosamente.")
                 onSuccess()
-            }
-            catch (e: Exception)
-            {
+            } catch (e: Exception) {
                 Log.e("Firestore", "Error guardando facultades", e)
             }
         }
     }
 
-    fun saveInterests(userId: String, onSuccess: () -> Unit)
-    {
+    // Guardar los intereses seleccionados
+    fun saveInterests(userId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            try
-            {
-                val userRef = db.collection("users").document(userId)
-                userRef.set(mapOf("interests" to selectedInterests), SetOptions.merge()).await()
+            try {
+                // Realizamos la operación en segundo plano
+                withContext(Dispatchers.IO) {
+                    val userRef = db.collection("users").document(userId)
+                    userRef.set(mapOf("interests" to selectedInterests), SetOptions.merge()).await()
+                }
                 Log.d("Firestore", "Intereses guardados exitosamente.")
                 onSuccess()
-            }
-            catch (e: Exception)
-            {
+            } catch (e: Exception) {
                 Log.e("Firestore", "Error guardando intereses", e)
             }
         }
     }
 
-    fun loadFaculties(uid: String, onResult: (List<String>) -> Unit)
-    {
+    // Cargar las facultades del usuario
+    fun loadFaculties(uid: String, onResult: (List<String>) -> Unit) {
         viewModelScope.launch {
-            try
-            {
-                val document = db.collection("users").document(uid).get().await()
-                val faculties = document.get("faculties") as? List<String> ?: emptyList()
+            try {
+                // Realizamos la operación en segundo plano
+                val faculties = withContext(Dispatchers.IO) {
+                    val document = db.collection("users").document(uid).get().await()
+                    document.get("faculties") as? List<String> ?: emptyList()
+                }
                 onResult(faculties)
-            }
-            catch (e: Exception)
-            {
+            } catch (e: Exception) {
                 Log.e("Firestore", "Error cargando facultades", e)
                 onResult(emptyList())
             }
         }
     }
 
-    fun loadInterests(uid: String, onResult: (List<String>) -> Unit)
-    {
+    // Cargar los intereses del usuario
+    fun loadInterests(uid: String, onResult: (List<String>) -> Unit) {
         viewModelScope.launch {
-            try
-            {
-                val document = db.collection("users").document(uid).get().await()
-                val interests = document.get("interests") as? List<String> ?: emptyList()
+            try {
+                // Realizamos la operación en segundo plano
+                val interests = withContext(Dispatchers.IO) {
+                    val document = db.collection("users").document(uid).get().await()
+                    document.get("interests") as? List<String> ?: emptyList()
+                }
                 onResult(interests)
-            }
-            catch (e: Exception)
-            {
+            } catch (e: Exception) {
                 Log.e("Firestore", "Error cargando intereses", e)
                 onResult(emptyList())
             }

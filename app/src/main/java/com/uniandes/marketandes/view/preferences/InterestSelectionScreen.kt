@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
@@ -69,6 +70,7 @@ fun InterestSelectionScreen(
         Log.d("InterestScreen", "Intereses guardadas localmente: ${interest.toSet()}")
     }
 
+
     // Sincronizar los intereses cuando se restablezca la conexión
     fun syncInterestWhenOnline() {
         if (!isOffline) {
@@ -85,6 +87,10 @@ fun InterestSelectionScreen(
             }
         }
     }
+
+
+
+
 
     // Observar el estado de conectividad y sincronizar cuando vuelva a estar en línea
     LaunchedEffect(connectivityState.value) {
@@ -175,7 +181,7 @@ fun InterestSelectionScreen(
                     Log.d("InterestScreen", "Intereses seleccionados: $selectedInterests")
                     viewModel.saveInterests(userId) {
                         if (isEdit) {
-                            navController.popBackStack()
+                            navController.navigate("pag_perfil_screen")
                         } else {
                             navController.navigate("pag_home")
                         }
