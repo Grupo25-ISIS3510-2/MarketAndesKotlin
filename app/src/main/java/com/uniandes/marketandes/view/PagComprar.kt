@@ -1,42 +1,56 @@
 package com.uniandes.marketandes.view
 
-import androidx.compose.runtime.Composable
-import androidx.compose.material3.Text
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.model.Product
 import com.uniandes.marketandes.viewModel.ProductViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Foundation
-import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.google.firebase.firestore.FirebaseFirestore
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.ConnectivityViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
 
 @Composable
 fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
+    val context = LocalContext.current
+
+    // ViewModel para observar la conectividad
+    val connectivityViewModel: ConnectivityViewModel = viewModel()
+    val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+
+    LaunchedEffect(Unit) {
+        connectivityViewModel.startNetworkCallback(context)
+    }
+
+    val isConnected by connectivityViewModel.isConnected
+
     val productos by viewModel.products.collectAsState()
     var selectedCategory by remember { mutableStateOf("Todos") }
+    var toastMessage by remember { mutableStateOf<String?>(null) }
 
     val categories = listOf(
         "Ciencias" to Icons.Filled.Science,
@@ -64,67 +78,129 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
             val snapshot = transaction.get(categoryRef)
             val currentCount = snapshot.getLong("interactions") ?: 0
             transaction.update(categoryRef, "interactions", currentCount + 1)
+        }.addOnFailureListener {
+            toastMessage = "Error actualizando interacciones"
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    // Mostrar mensaje como Toast
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            toastMessage = null
+        }
+    }
 
-        LazyRow(
+    Scaffold { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .padding(16.dp)
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item {
-                FilterButton(
-                    categoryName = "Todos",
-                    icon = Icons.Filled.Apps,
-                    isSelected = selectedCategory == "Todos",
-                    onClick = {
-                        selectedCategory = "Todos"
-                        incrementCategoryInteraction("Todos")
+            // Banner de conexión
+            if (!isConnected) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.SignalWifiOff,
+                            contentDescription = "Sin conexión",
+                            tint = Color(0xFF856404),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Estás sin conexión. Algunos datos podrían no estar actualizados.",
+                            color = Color(0xFF856404),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
+                        )
                     }
-                )
+                }
             }
 
-            categories.forEach { (categoryName, icon) ->
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 item {
                     FilterButton(
-                        categoryName = categoryName,
-                        icon = icon,
-                        isSelected = selectedCategory == categoryName,
+                        categoryName = "Todos",
+                        icon = Icons.Filled.Apps,
+                        isSelected = selectedCategory == "Todos",
                         onClick = {
-                            selectedCategory = categoryName
-                            incrementCategoryInteraction(categoryName)
+                            selectedCategory = "Todos"
+                            incrementCategoryInteraction("Todos")
                         }
                     )
                 }
+
+                categories.forEach { (categoryName, icon) ->
+                    item {
+                        FilterButton(
+                            categoryName = categoryName,
+                            icon = icon,
+                            isSelected = selectedCategory == categoryName,
+                            onClick = {
+                                selectedCategory = categoryName
+                                incrementCategoryInteraction(categoryName)
+                            }
+                        )
+                    }
+                }
             }
-        }
 
-        val filteredProducts = if (selectedCategory == "Todos") {
-            productos
-        } else {
-            productos.filter { it.category == selectedCategory }
-        }
+            val filteredProducts = if (selectedCategory == "Todos") {
+                productos
+            } else {
+                productos.filter { it.category == selectedCategory }
+            }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(filteredProducts) { producto ->
-                ProductCard(product = producto, navController = navController)
+            if (filteredProducts.isEmpty()) {
+                // Indicador o mensaje cuando no hay productos filtrados
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No hay productos para esta categoría",
+                        fontSize = 16.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredProducts) { producto ->
+                        ProductCard(product = producto, navController = navController)
+                    }
+                }
             }
         }
     }
@@ -171,8 +247,8 @@ fun ProductCard(product: Product, navController: NavHostController) {
             .padding(8.dp)
             .clickable { navController.navigate("detalle_compra/${product.id}") }
     ) {
-        GlideImage(
-            imageUrl = product.imageURL,
+        androidx.compose.foundation.Image(
+            painter = rememberAsyncImagePainter(product.imageURL),
             contentDescription = "Imagen de ${product.name}",
             contentScale = ContentScale.Crop,
             modifier = Modifier
