@@ -1,7 +1,6 @@
 package com.uniandes.marketandes.view.favorites
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,8 +8,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SignalWifiOff
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,6 +28,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.uniandes.marketandes.local.AppDatabase
 import com.uniandes.marketandes.model.Product
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.ConnectivityViewModel
 import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 
@@ -34,59 +36,93 @@ import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 fun PagFavoritos(navController: NavHostController) {
     val context = LocalContext.current
 
-    // ✅ ViewModel con Factory
     val dao = AppDatabase.getDatabase(context).favoriteDao()
+    val connectivityViewModel: ConnectivityViewModel = viewModel()
     val connectivityObserver = remember { NetworkConnectivityObserver(context) }
     val factory = remember { FavoritosViewModelFactory(dao, connectivityObserver) }
-    val viewModel: FavoritosViewModel = viewModel(factory = factory)
+    val favoritosViewModel: FavoritosViewModel = viewModel(factory = factory)
 
-    val productos by viewModel.productosFavoritos.collectAsState()
-    val toastMessage by viewModel.mensajeVisible.collectAsState()
-    val mensajeVisible by viewModel.mensajeVisible.collectAsState()
+    // Ejecutamos la comprobación de conectividad
+    LaunchedEffect(Unit) {
+        connectivityViewModel.startNetworkCallback(context)
+    }
 
-    // ✅ Mostrar Toast cuando hay mensaje
+    val isConnected by connectivityViewModel.isConnected
+    val productos by favoritosViewModel.productosFavoritos.collectAsState()
+    val toastMessage by favoritosViewModel.mensajeVisible.collectAsState()
+
+    // Mostrar mensaje como toast
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.mensajeMostrado()
+            favoritosViewModel.mensajeMostrado()
         }
     }
 
-    // Mostrar mensaje cuando no hay conexión
-    val isOffline = connectivityObserver.isConnected.collectAsState(initial = true).value.not()
+    Scaffold { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Banner de advertencia persistente cuando está sin conexión
+            if (!isConnected) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.SignalWifiOff,
+                            contentDescription = "Sin conexión",
+                            tint = Color(0xFF856404),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Estás sin conexión. Mostrando favoritos locales.",
+                            color = Color(0xFF856404),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(12.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Tus productos favoritos",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Si estamos desconectados, mostramos un mensaje sobre la sincronización
-        if (isOffline) {
             Text(
-                text = "Sin conexión. Mostrando favoritos locales.",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
+                text = "Tus productos favoritos",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
-        }
 
-        // Mostrar un indicador de carga si estamos sincronizando
-        if (productos.isEmpty() && !isOffline) {
-            // Indicador de carga si no hay productos y estamos en línea
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(productos) { producto ->
-                    FavoriteProductCard(product = producto, navController, viewModel)
+            if (productos.isEmpty() && isConnected) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    items(productos) { producto ->
+                        FavoriteProductCard(
+                            product = producto,
+                            navController = navController,
+                            onCardClick = { id -> navController.navigate("detalle_compra/$id") }
+                        )
+                    }
                 }
             }
         }
@@ -94,45 +130,68 @@ fun PagFavoritos(navController: NavHostController) {
 }
 
 @Composable
-fun FavoriteProductCard(product: Product, navController: NavHostController, viewModel: FavoritosViewModel) {
-    Column(
+fun FavoriteProductCard(
+    product: Product,
+    navController: NavHostController,
+    onCardClick: (String) -> Unit
+) {
+    Card(
         modifier = Modifier
-            .fillMaxWidth()
             .padding(8.dp)
-            .clickable { navController.navigate("detalle_compra/${product.id}") }
+            .width(160.dp)
+            .height(240.dp)
+            .clickable { onCardClick(product.id) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(product.imageURL),
-            contentDescription = "Imagen de ${product.name}",
-            contentScale = ContentScale.Crop,
+        Column(
             modifier = Modifier
-                .height(150.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-        )
-
-        Text(
-            text = product.name,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF002366))
-                .padding(8.dp),
-            contentAlignment = Alignment.Center
+                .padding(8.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "$ ${product.price}",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+            androidx.compose.foundation.Image(
+                painter = rememberAsyncImagePainter(product.imageURL),
+                contentDescription = "Imagen de ${product.name}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .height(120.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = product.name,
+                color = Color.Black,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF002366))
+                    .height(36.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "$ ${product.price}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
