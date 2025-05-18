@@ -94,4 +94,22 @@ class ProductRepository(
             null
         }
     }
+
+    suspend fun deleteProductById(productId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Eliminar en Firestore
+                db.collection("products").document(productId).delete().await()
+
+                // Eliminar también en Room
+                productDao.deleteById(productId)
+
+                Log.d("ProductRepository", "✅ Producto $productId eliminado correctamente.")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "❌ Error eliminando producto: ${e.message}")
+                throw e // para que el ViewModel pueda capturar el error si es necesario
+            }
+        }
+    }
+
 }

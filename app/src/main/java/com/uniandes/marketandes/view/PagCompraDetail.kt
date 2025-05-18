@@ -58,6 +58,9 @@ fun PagCompraDetail(
     val connectivityState = connectivityObserver.isConnected.collectAsState(initial = false)
     val isOffline = !connectivityState.value
 
+    val sellerName by detailViewModel.sellerName.observeAsState("Cargando...")
+
+
     product?.let {
         Column(
             modifier = Modifier
@@ -216,7 +219,7 @@ fun PagCompraDetail(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = it.sellerID,
+                    text = sellerName,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = 4.dp)

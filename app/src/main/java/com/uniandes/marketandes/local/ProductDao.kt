@@ -15,4 +15,13 @@ interface ProductDao
 
     @Query("SELECT * FROM cached_products")
     suspend fun getAllCachedProducts(): List<ProductEntity>
+
+    @Query("DELETE FROM cached_products WHERE id = :productId")
+    suspend fun deleteById(productId: String)
+
+    @Query("SELECT * FROM cached_products WHERE id = :productId LIMIT 1")
+    suspend fun getProductById(productId: String): ProductEntity?
+
+
+
 }

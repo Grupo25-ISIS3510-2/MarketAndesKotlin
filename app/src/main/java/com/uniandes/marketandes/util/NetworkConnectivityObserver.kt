@@ -7,13 +7,23 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class NetworkConnectivityObserver(context: Context) : ConnectivityObserver {
 
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    private val _isConnected = MutableStateFlow(false)
+    override val isConnected: StateFlow<Boolean> get() = _isConnected
+
+    init {
+        observe().map { it == NetworkStatus.Available }.distinctUntilChanged().collectInScope(_isConnected)
+    }
 
     override fun observe(): Flow<NetworkStatus> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -45,6 +55,11 @@ class NetworkConnectivityObserver(context: Context) : ConnectivityObserver {
         }
     }.distinctUntilChanged()
 
-    override val isConnected: Flow<Boolean>
-        get() = observe().map { status -> status == NetworkStatus.Available }
+    private fun <T> Flow<T>.collectInScope(state: MutableStateFlow<T>) {
+        kotlinx.coroutines.GlobalScope.launch {
+            collect {
+                state.value = it
+            }
+        }
+    }
 }

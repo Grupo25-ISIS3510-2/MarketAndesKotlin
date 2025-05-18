@@ -192,6 +192,19 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("pag_perfil_screen") { PerfilScreen(navController) }
         composable("pag_favoritos") { PagFavoritos(navController) }
         composable("pag_misPublicaciones") { Pag_misPublicaciones(navController) }
+
+        composable(
+            route = "editar_publicacion/{productId}",
+            arguments = listOf(navArgument("productId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            PagEditarProducto(navController = navController, productId = productId,
+                connectivityObserver = NetworkConnectivityObserver(LocalContext.current)
+            )
+        }
+
+
+
         composable(
             route = "edit_faculties?preselected={preselected}",
             arguments = listOf(
