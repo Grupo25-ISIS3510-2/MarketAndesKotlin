@@ -38,14 +38,11 @@ import coil.compose.rememberAsyncImagePainter
 fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
     val context = LocalContext.current
 
-    // ViewModel para observar la conectividad
     val connectivityViewModel: ConnectivityViewModel = viewModel()
     val connectivityObserver = remember { NetworkConnectivityObserver(context) }
-
     LaunchedEffect(Unit) {
         connectivityViewModel.startNetworkCallback(context)
     }
-
     val isConnected by connectivityViewModel.isConnected
 
     val productos by viewModel.products.collectAsState()
@@ -59,6 +56,29 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
         "Arquitectura" to Icons.Filled.Foundation,
         "Libros" to Icons.Filled.Book,
     )
+
+    var categoryInteractions by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
+
+    fun loadCategoryInteractions() {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("categoryInteractions").get()
+            .addOnSuccessListener { snapshot ->
+                val interactionsMap = snapshot.documents.associate { doc ->
+                    val category = doc.id
+                    val count = doc.getLong("interactions") ?: 0L
+                    category to count
+                }
+                categoryInteractions = interactionsMap
+            }
+    }
+
+    LaunchedEffect(Unit) {
+        loadCategoryInteractions()
+    }
+
+    val sortedCategories = categories.sortedByDescending { (name, _) ->
+        categoryInteractions[name] ?: 0L
+    }
 
     val title = when (selectedCategory) {
         "Todos" -> "Todos los productos"
@@ -80,10 +100,11 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
             transaction.update(categoryRef, "interactions", currentCount + 1)
         }.addOnFailureListener {
             toastMessage = "Error actualizando interacciones"
+        }.addOnSuccessListener {
+            loadCategoryInteractions()
         }
     }
 
-    // Mostrar mensaje como Toast
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -99,7 +120,6 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Banner de conexión
             if (!isConnected) {
                 Card(
                     modifier = Modifier
@@ -158,7 +178,7 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
                     )
                 }
 
-                categories.forEach { (categoryName, icon) ->
+                sortedCategories.forEach { (categoryName, icon) ->
                     item {
                         FilterButton(
                             categoryName = categoryName,
@@ -180,7 +200,6 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
             }
 
             if (filteredProducts.isEmpty()) {
-                // Indicador o mensaje cuando no hay productos filtrados
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -205,6 +224,7 @@ fun PagComprar(navController: NavHostController, viewModel: ProductViewModel) {
         }
     }
 }
+
 
 @Composable
 fun FilterButton(
