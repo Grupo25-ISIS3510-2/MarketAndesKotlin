@@ -34,7 +34,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.uniandes.marketandes.local.AppDatabase
-import coil.compose.AsyncImage
 import com.uniandes.marketandes.viewModel.ConnectivityViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
