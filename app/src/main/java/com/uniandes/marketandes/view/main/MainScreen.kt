@@ -173,7 +173,6 @@ fun HeaderBar(onMenuClick: () -> Unit) {
 }
 
 
-@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modifier: Modifier) {
     NavHost(

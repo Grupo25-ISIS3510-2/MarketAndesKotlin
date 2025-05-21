@@ -25,6 +25,7 @@ import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.viewModel.ProductViewModelFactory
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PagEditarProducto(
     navController: NavController,
@@ -67,7 +68,11 @@ fun PagEditarProducto(
             var nombre by remember { mutableStateOf(producto.name) }
             var descripcion by remember { mutableStateOf(producto.description) }
             var precio by remember { mutableStateOf(producto.price.toString()) }
+
+            val categorias = listOf("Arquitectura", "Ciencias", "Lenguas", "Libros", "Tecnología")
             var categoria by remember { mutableStateOf(producto.category) }
+            var expanded by remember { mutableStateOf(false) }
+
             var imageUrl by remember { mutableStateOf(producto.imageURL) }
 
             Column(
@@ -122,12 +127,38 @@ fun PagEditarProducto(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = categoria,
-                    onValueChange = { categoria = it },
-                    label = { Text("Categoría") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Categoría") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categorias.forEach { seleccion ->
+                            DropdownMenuItem(
+                                text = { Text(seleccion) },
+                                onClick = {
+                                    categoria = seleccion
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
 
                 OutlinedTextField(
                     value = imageUrl,

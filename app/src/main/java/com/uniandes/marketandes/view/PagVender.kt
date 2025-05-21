@@ -16,6 +16,7 @@ import com.uniandes.marketandes.repository.ProductRepository
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
 import com.uniandes.marketandes.viewmodel.PagVenderViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PagVender(
     productRepository: ProductRepository,
@@ -27,7 +28,8 @@ fun PagVender(
     var message by remember { mutableStateOf("") }
     var showOfflineDialog by remember { mutableStateOf(false) }
 
-
+    val categorias = listOf("Tecnología", "Ciencias", "Arquitectura", "Libros", "Lenguas")
+    var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -64,12 +66,35 @@ fun PagVender(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = form.category,
-                onValueChange = { viewModel.updateForm(form.copy(category = it)) },
-                label = { Text("Categoría") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = form.category,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    categorias.forEach { categoria ->
+                        DropdownMenuItem(
+                            text = { Text(categoria) },
+                            onClick = {
+                                viewModel.updateForm(form.copy(category = categoria))
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = form.description,

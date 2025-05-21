@@ -123,7 +123,7 @@ fun UbicacionDetail (navController: NavHostController) {
 
         if (showError) {
             ErrorDialog(
-                message = "No tienes conexión estable. Dirección de la tienda: $direccionDecoded",
+                message = "No puedes acceder al mapa porque tienes conexión inestable. Esta es la dirección de la tienda: $direccionDecoded",
                 onDismiss = { showError = false }
             )
         }
