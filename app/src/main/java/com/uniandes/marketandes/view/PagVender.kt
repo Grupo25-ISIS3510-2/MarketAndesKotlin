@@ -1,21 +1,33 @@
 package com.uniandes.marketandes.view
 
+import PagVenderViewModelFactory
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.uniandes.marketandes.model.ProductForm
+import com.uniandes.marketandes.repository.ProductRepository
+import com.uniandes.marketandes.util.NetworkConnectivityObserver
 import com.uniandes.marketandes.viewmodel.PagVenderViewModel
 
 @Composable
-fun PagVender(viewModel: PagVenderViewModel = viewModel()) {
+fun PagVender(
+    productRepository: ProductRepository,
+    connectivityObserver: NetworkConnectivityObserver,
+    viewModel: PagVenderViewModel = viewModel(
+        factory = PagVenderViewModelFactory(productRepository, connectivityObserver))
+    ){
     val form by viewModel.formState.collectAsState()
     var message by remember { mutableStateOf("") }
+    var showOfflineDialog by remember { mutableStateOf(false) }
+
+
 
     Card(
         modifier = Modifier
@@ -72,12 +84,19 @@ fun PagVender(viewModel: PagVenderViewModel = viewModel()) {
                     contentColor = Color.White
                 ),
                 onClick = {
-                    viewModel.submitProduct { success ->
-                        message = if (success) {
-                            viewModel.resetForm()
-                            "Producto subido con éxito"
-                        } else {
-                            "Error al subir producto"
+                    viewModel.submitProduct { result ->
+                        when (result) {
+                            "online" -> {
+                                message = "Producto subido con éxito"
+                                viewModel.resetForm()
+                            }
+                            "offline" -> {
+                                showOfflineDialog = true
+                                viewModel.resetForm()
+                            }
+                            else -> {
+                                message = "Error al subir producto"
+                            }
                         }
                     }
                 },
@@ -95,5 +114,18 @@ fun PagVender(viewModel: PagVenderViewModel = viewModel()) {
                 )
             }
         }
+    }
+
+    if (showOfflineDialog) {
+        AlertDialog(
+            onDismissRequest = { showOfflineDialog = false },
+            title = { Text("Sin conexión") },
+            text = { Text("Tu producto fue guardado localmente y se subirá automáticamente cuando tengas conexión.") },
+            confirmButton = {
+                TextButton(onClick = { showOfflineDialog = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 }

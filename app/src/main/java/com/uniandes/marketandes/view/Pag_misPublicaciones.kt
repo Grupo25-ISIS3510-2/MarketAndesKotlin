@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.SignalWifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +51,9 @@ fun Pag_misPublicaciones(navController: NavHostController) {
     val myProducts by productViewModel.products.collectAsState(initial = emptyList())
 
     val userProducts = remember(myProducts, currentUser?.uid) {
-        myProducts.filter { it.sellerID == currentUser?.uid }
+        myProducts.filter {
+            it.sellerID == currentUser?.uid || it.pendingUpload
+        }
     }
 
     Scaffold { innerPadding ->
@@ -128,6 +131,7 @@ fun Pag_misPublicaciones(navController: NavHostController) {
                         items(userProducts) { product ->
                             PublicationCard(
                                 product = product,
+                                pendingUpload = product.pendingUpload,
                                 onClick = { navController.navigate("detalle_compra/${product.id}") },
                                 onDelete = {
                                     productViewModel.deleteProduct(product.id)
@@ -153,6 +157,7 @@ fun Pag_misPublicaciones(navController: NavHostController) {
 @Composable
 fun PublicationCard(
     product: Product,
+    pendingUpload: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit
@@ -180,9 +185,21 @@ fun PublicationCard(
                     .clip(RoundedCornerShape(10.dp))
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (pendingUpload) {
+                Icon(
+                    imageVector = Icons.Default.Schedule, // icono reloj
+                    contentDescription = "Pendiente de subir",
+                    tint = Color.Black,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(8.dp)
+                )
+            }
+        }
 
-            Text(
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
                 text = product.name,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
@@ -191,9 +208,9 @@ fun PublicationCard(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Box(
+             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
@@ -233,7 +250,7 @@ fun PublicationCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 TextButton(
                     onClick = onDelete,
@@ -254,4 +271,4 @@ fun PublicationCard(
             }
         }
     }
-}
+

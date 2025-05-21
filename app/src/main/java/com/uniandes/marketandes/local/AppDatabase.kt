@@ -12,7 +12,7 @@ import com.uniandes.marketandes.model.MessageEntity
 
 @Database(
     entities = [ProductEntity::class, FavoriteEntity::class, MessageEntity::class],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
