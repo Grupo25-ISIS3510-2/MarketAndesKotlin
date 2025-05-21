@@ -95,6 +95,8 @@ class ProductRepository(
         }
     }
 
+
+
     suspend fun deleteProductById(productId: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -111,5 +113,77 @@ class ProductRepository(
             }
         }
     }
+
+    suspend fun addProduct(product: Product, online: Boolean) {
+        if (online) {
+            try {
+                db.collection("products")
+                    .document(product.id)
+                    .set(product)
+                    .await()
+
+                productDao.insertProduct(product.toEntity(pendingUpload = false))
+                Log.d("ProductRepository", "✅ Producto subido en línea y guardado localmente.")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "❌ Error subiendo producto online, guardando localmente como pendiente.")
+                saveProductLocallyWhenOffline(product)
+            }
+        } else {
+            Log.d("ProductRepository", "📴 Sin conexión. Guardando producto localmente como pendiente.")
+            saveProductLocallyWhenOffline(product)
+        }
+    }
+
+
+
+    suspend fun saveProductLocallyWhenOffline(product: Product) {
+        withContext(Dispatchers.IO) {
+            try {
+                val entity = product.toEntity(pendingUpload = true)
+                productDao.insertProduct(entity)
+                Log.d("ProductRepository", "📦 Producto guardado localmente con pendingUpload=true")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "❌ Error guardando producto local: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun uploadPendingProducts() {
+        withContext(Dispatchers.IO) {
+            val pendingProducts = productDao.getPendingUploadProducts().map { it.toDomain() }
+            for (product in pendingProducts) {
+                try {
+                    // Intentar subir a Firebase
+                    val success = uploadProductToServer(product)
+                    if (success) {
+                        // Marcar como subido (pendingUpload = false) en la base local
+                        val updatedEntity = product.toEntity().copy(pendingUpload = false)
+                        productDao.insertProduct(updatedEntity)
+                    }
+                } catch (e: Exception) {
+                    // Si falla, continuar con el siguiente producto
+                }
+            }
+        }
+    }
+
+    private suspend fun uploadProductToServer(product: Product): Boolean {
+        return try {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("products")
+                .document(product.id)
+                .set(product)
+                .await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+
+
+
+
+
 
 }

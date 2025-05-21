@@ -55,6 +55,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
+import com.uniandes.marketandes.repository.ProductRepository
 import com.uniandes.marketandes.view.favorites.PagFavoritos
 import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
@@ -188,7 +189,18 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         }
         composable("pag_impulsar") { PagImpulsar(navController) }
 
-        composable("pag_vender") { PagVender() }
+        composable("pag_vender") { backStackEntry ->
+
+            val context = LocalContext.current
+            val productRepository = remember { ProductRepository(context) }
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+
+            PagVender(
+                productRepository = productRepository,
+                connectivityObserver = connectivityObserver
+            )
+        }
+
         composable("pag_home") { PagHome(navController) }
         composable("pag_intercambio") {
             val context = LocalContext.current

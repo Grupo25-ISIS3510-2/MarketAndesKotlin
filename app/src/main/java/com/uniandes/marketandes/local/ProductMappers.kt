@@ -3,8 +3,6 @@ package com.uniandes.marketandes.local
 import com.uniandes.marketandes.model.Product
 import com.uniandes.marketandes.model.ProductEntity
 import com.uniandes.marketandes.model.FavoriteEntity
-
-// Conversión de Product a ProductEntity (para productos normales)
 fun Product.toEntity(): ProductEntity = ProductEntity(
     id = id,
     name = name,
@@ -13,7 +11,21 @@ fun Product.toEntity(): ProductEntity = ProductEntity(
     category = category,
     description = description,
     sellerID = sellerID,
-    sellerRating = sellerRating
+    sellerRating = sellerRating,
+    pendingUpload = pendingUpload
+)
+
+// Conversión de Product a ProductEntity (para productos normales)
+fun Product.toEntity(pendingUpload: Boolean): ProductEntity = ProductEntity(
+    id = id,
+    name = name,
+    price = price,
+    imageURL = imageURL,
+    category = category,
+    description = description,
+    sellerID = sellerID,
+    sellerRating = sellerRating,
+    pendingUpload = pendingUpload
 )
 
 // Conversión de ProductEntity a dominio
@@ -25,7 +37,8 @@ fun ProductEntity.toDomain(): Product = Product(
     category = category,
     description = description,
     sellerID = sellerID,
-    sellerRating = sellerRating
+    sellerRating = sellerRating,
+    pendingUpload = pendingUpload
 )
 
 // Conversión de Product a FavoriteEntity
