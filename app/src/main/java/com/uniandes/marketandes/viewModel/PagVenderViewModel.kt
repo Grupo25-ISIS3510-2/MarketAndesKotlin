@@ -11,6 +11,9 @@ import com.uniandes.marketandes.util.NetworkConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 
 class PagVenderViewModel(private val productRepository: ProductRepository,
                          private val connectivityObserver: NetworkConnectivityObserver
@@ -55,18 +58,39 @@ class PagVenderViewModel(private val productRepository: ProductRepository,
             val isConnected = connectivityObserver.isConnected.value
 
             if (isConnected) {
-                firebaseService.uploadProductFromForm(
-                    form,
-                    onSuccess = { onResult("online") },
-                    onFailure = { onResult("error") }
-                )
+                val uploadResult = withContext(Dispatchers.IO) {
+                    var result = "error"
+                    val latch = kotlinx.coroutines.CompletableDeferred<Unit>()
+
+                    firebaseService.uploadProductFromForm(
+                        form,
+                        onSuccess = {
+                            result = "online"
+                            latch.complete(Unit)
+                        },
+                        onFailure = {
+                            result = "error"
+                            latch.complete(Unit)
+                        }
+                    )
+
+                    latch.await()
+                    result
+                }
+
+                onResult(uploadResult)
+
             } else {
-                val product = mapFormToProduct(form)
-                productRepository.saveProductLocallyWhenOffline(product)
+                withContext(Dispatchers.IO) {
+                    val product = mapFormToProduct(form)
+                    productRepository.saveProductLocallyWhenOffline(product)
+                }
                 onResult("offline")
             }
         }
     }
+
+
 
 
 
