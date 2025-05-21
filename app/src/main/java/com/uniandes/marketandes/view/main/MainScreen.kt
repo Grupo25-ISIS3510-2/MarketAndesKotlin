@@ -1,6 +1,7 @@
 package com.uniandes.marketandes.view.main
 import PerfilScreen
 import RegisterScreen
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
@@ -57,6 +58,8 @@ import com.uniandes.marketandes.model.BottomNavItem
 import com.uniandes.marketandes.view.favorites.PagFavoritos
 import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.ExchangeProductViewModel
+import com.uniandes.marketandes.viewModel.ExchangeProductViewModelFactory
 import com.uniandes.marketandes.viewModel.ProductViewModelFactory
 
 
@@ -169,6 +172,7 @@ fun HeaderBar(onMenuClick: () -> Unit) {
 }
 
 
+@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modifier: Modifier) {
     NavHost(
@@ -186,7 +190,14 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
         composable("pag_vender") { PagVender() }
         composable("pag_home") { PagHome(navController) }
-        composable("pag_intercambio") { PagIntercambio() }
+        composable("pag_intercambio") {
+            val context = LocalContext.current
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+            val exchangeProductViewModel: ExchangeProductViewModel = viewModel(
+                factory = ExchangeProductViewModelFactory(connectivityObserver, context)
+            )
+            PagIntercambiar(navController, exchangeProductViewModel)
+        }
         composable("pag_chat") { PagChat(navController) }
 
         composable("pag_perfil_screen") { PerfilScreen(navController) }
@@ -203,7 +214,18 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
             )
         }
 
-
+        composable(
+            route = "detalle_intercambiar/{productId}",
+            arguments = listOf(navArgument("productId") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            PagIntercambiarDetail(
+                navController = navController,
+                productId = productId
+            )
+        }
 
         composable(
             route = "edit_faculties?preselected={preselected}",
@@ -240,8 +262,6 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
             PagStoreMaps(navController, destinoNombre, destinoImagen, destinoDireccion)
         }
 
-
-
         composable(
             route = "edit_interests?preselected={preselected}",
             arguments = listOf(
@@ -263,8 +283,6 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
             )
         }
-
-
 
         composable("pag_comprar") {
             val context = LocalContext.current
