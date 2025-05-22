@@ -9,12 +9,15 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.outlined.SignalWifiOff
 import androidx.compose.ui.*
+import com.uniandes.marketandes.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,6 +34,9 @@ import com.uniandes.marketandes.viewModel.FavoritosViewModelFactory
 import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.viewModel.ProductViewModelFactory
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
+import com.uniandes.marketandes.viewmodel.PerfilCheckViewModel
+import androidx.compose.ui.res.painterResource
+
 
 @Composable
 fun PagHome(navController: NavHostController) {
@@ -47,6 +53,9 @@ fun PagHome(navController: NavHostController) {
     val networkStatus by productViewModel.networkStatus.collectAsStateWithLifecycle()
     val categoriaFavorita by favoritosViewModel.categoriaFavorita.collectAsState()
     val toastMessage by favoritosViewModel.mensajeVisible.collectAsState()
+
+    val perfilCheckViewModel: PerfilCheckViewModel = viewModel()
+    val mostrarRecordatorio by perfilCheckViewModel.mostrarRecordatorio.collectAsState()
 
     Log.d("Conexion", "$networkStatus")
 
@@ -66,7 +75,7 @@ fun PagHome(navController: NavHostController) {
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Banner de advertencia persistente
+            // Banner de advertencia por conexión
             if (isOffline) {
                 Card(
                     modifier = Modifier
@@ -77,7 +86,8 @@ fun PagHome(navController: NavHostController) {
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -93,9 +103,58 @@ fun PagHome(navController: NavHostController) {
                             color = Color(0xFF856404),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(12.dp),
                             textAlign = TextAlign.Center
                         )
+                    }
+                }
+            }
+
+            // Banner de advertencia por perfil desactualizado
+            if (mostrarRecordatorio) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F7FA)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp) // ícono más grande
+                                .padding(end = 12.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.marketandes_attention),
+                                contentDescription = "Icono de perfil",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "No olvides actualizar tu perfil. Han pasado más de 7 días.",
+                                color = Color(0xFF004D40),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Ir al perfil",
+                                color = Color(0xFF00796B),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    navController.navigate("pag_perfil_screen")
+                                }
+                            )
+                        }
                     }
                 }
             }
