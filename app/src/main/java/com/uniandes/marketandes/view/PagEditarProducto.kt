@@ -24,6 +24,7 @@ import com.uniandes.marketandes.viewModel.ProductDetailViewModel
 import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.viewModel.ProductViewModelFactory
 import kotlinx.coroutines.launch
+import com.uniandes.marketandes.cache.ProductCache
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
