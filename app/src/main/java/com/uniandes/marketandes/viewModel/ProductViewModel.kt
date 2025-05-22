@@ -95,6 +95,10 @@ class ProductViewModel(
             )
         ).addOnSuccessListener {
             Log.d("Firestore", "Producto actualizado")
+
+            // Limpiar caché local después de la edición
+            com.uniandes.marketandes.cache.ProductCache.removeProduct(id)
+
         }.addOnFailureListener {
             Log.e("Firestore", "Error al actualizar", it)
         }

@@ -23,8 +23,9 @@ object ProductCache {
         Log.d("LRUCache", "📦 Producto cacheado: ${product.name} (ID: ${product.id})")
     }
 
-    fun clear() {
-        cache.evictAll()
-        Log.d("LRUCache", "🧹 Cache limpia")
+    fun removeProduct(productId: String) {
+        cache.remove(productId)
+        Log.d("LRUCache", "Producto eliminado de la cache (ID: $productId)")
     }
+
 }
