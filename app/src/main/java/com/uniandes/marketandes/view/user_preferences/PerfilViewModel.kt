@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import com.google.firebase.firestore.FieldValue
+
 
 class PerfilViewModel(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
@@ -60,14 +62,18 @@ class PerfilViewModel(
                 val telefono = snapshot.getString("telefono") ?: ""
                 val facultades = snapshot.get("faculties") as? List<String> ?: emptyList()
                 val intereses = snapshot.get("interests") as? List<String> ?: emptyList()
+                val lastUpdateTimestamp = snapshot.getTimestamp("lastProfileUpdate")?.toDate()?.time
+
 
                 _perfilState.value = PerfilUiState(
                     nombre = nombre,
                     fechaNacimiento = fechaNacimiento,
                     telefono = telefono,
                     facultades = facultades,
-                    intereses = intereses
+                    intereses = intereses,
+                    lastProfileUpdate = lastUpdateTimestamp
                 )
+
             } catch (e: Exception) {
                 _perfilState.value = _perfilState.value.copy(mensaje = "Error al cargar perfil: ${e.message}")
             }
@@ -84,7 +90,8 @@ class PerfilViewModel(
             "fechaNacimiento" to _perfilState.value.fechaNacimiento,
             "telefono" to _perfilState.value.telefono,
             "faculties" to _perfilState.value.facultades,
-            "interests" to _perfilState.value.intereses
+            "interests" to _perfilState.value.intereses,
+            "lastProfileUpdate" to FieldValue.serverTimestamp() // Timestamp de la última actualización
         )
 
         viewModelScope.launch {
@@ -115,5 +122,7 @@ data class PerfilUiState(
     val telefono: String = "",
     val mensaje: String = "",
     val facultades: List<String> = emptyList(),
-    val intereses: List<String> = emptyList()
+    val intereses: List<String> = emptyList(),
+    val lastProfileUpdate: Long? = null
+
 )

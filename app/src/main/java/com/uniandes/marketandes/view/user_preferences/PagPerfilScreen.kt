@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
 import com.uniandes.marketandes.view.user_preferences.PerfilViewModel
 import kotlinx.coroutines.launch
@@ -178,6 +179,11 @@ fun PerfilScreen(
                             uid?.let {
                                 viewModel.guardarPerfil()
 
+                                // Actualizar lastProfileUpdate en Firestore
+                                val firestore = FirebaseFirestore.getInstance()
+                                firestore.collection("users").document(uid)
+                                    .update("lastProfileUpdate", com.google.firebase.Timestamp.now())
+
                                 val mensaje = if (isOffline) {
                                     "Datos de perfil guardados. Se sincronizará cuando regrese la conexión."
                                 } else {
@@ -202,6 +208,7 @@ fun PerfilScreen(
                     ) {
                         Text("GUARDAR", color = Color.White)
                     }
+
 
                     Spacer(Modifier.height(16.dp))
 
