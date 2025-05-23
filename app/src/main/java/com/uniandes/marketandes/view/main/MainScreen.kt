@@ -1,13 +1,11 @@
 package com.uniandes.marketandes.view.main
 import PerfilScreen
 import RegisterScreen
-import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.foundation.layout.*
@@ -55,6 +53,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
+import com.uniandes.marketandes.repository.ExchangeProductRepository
 import com.uniandes.marketandes.repository.ProductRepository
 import com.uniandes.marketandes.view.favorites.PagFavoritos
 import com.uniandes.marketandes.viewModel.ProductViewModel
@@ -76,7 +75,7 @@ fun MainScreen() {
 
     val items = listOf(
         BottomNavItem("", R.drawable.shop_icon, "pag_comprar"),
-        BottomNavItem("", R.drawable.add_icon, "pag_vender"),
+        BottomNavItem("", R.drawable.add_icon, "pag_seleccion"),
         BottomNavItem("", R.drawable.home_icon, "pag_home"),
         BottomNavItem("", R.drawable.exchange_icon, "pag_intercambio"),
         BottomNavItem("", R.drawable.chat_icon, "pag_chat")
@@ -186,7 +185,25 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
             val productViewModel: ProductViewModel = viewModel()
             PagComprar(navController, productViewModel)
         }
+
+
+        composable("pag_seleccion") { Pag_seleccion (navController ) }
+
         composable("pag_impulsar") { PagImpulsar(navController) }
+
+
+        composable("pag_ExchangeProduct") {backStackEntry ->
+
+            val context = LocalContext.current
+            val exchangeProductRepository = remember { ExchangeProductRepository(context) }
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+
+            PagExchangeProduct(
+                exchangeProductRepository = exchangeProductRepository,
+                connectivityObserver = connectivityObserver
+            )
+        }
+
 
         composable("pag_vender") { backStackEntry ->
 
@@ -200,6 +217,8 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
             )
         }
 
+
+        composable("pag_seleccion") { Pag_seleccion(navController) }
         composable("pag_home") { PagHome(navController) }
         composable("pag_intercambio") {
             val context = LocalContext.current
