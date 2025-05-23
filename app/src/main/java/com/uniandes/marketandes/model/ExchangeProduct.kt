@@ -8,5 +8,6 @@ data class ExchangeProduct(
     val category: String,
     val description: String,
     val sellerID: String,
-    val sellerRating: Int
+    val sellerRating: Int,
+    val pendingUpload: Boolean = false
 )

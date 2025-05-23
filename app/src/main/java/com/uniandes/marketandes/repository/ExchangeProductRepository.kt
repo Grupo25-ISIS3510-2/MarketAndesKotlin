@@ -1,89 +1,105 @@
 package com.uniandes.marketandes.repository
 
+import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.uniandes.marketandes.local.AppDatabase
 import com.uniandes.marketandes.local.ExchangeProductDao
+import com.uniandes.marketandes.local.toEntity
 import com.uniandes.marketandes.model.ExchangeProduct
 import com.uniandes.marketandes.model.ExchangeProductEntity
+import com.uniandes.marketandes.model.Product
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import com.uniandes.marketandes.local.toDomain
+import kotlinx.coroutines.processNextEventInCurrentThread
+
 
 class ExchangeProductRepository(
-    private val exchangeProductDao: ExchangeProductDao,
-    private val db: FirebaseFirestore
+    context: Context,
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
+
+    private val exchangeProductDao = AppDatabase.getDatabase(context).exchangeProductDao()
 
     private val collectionName = "exchangeProducts"
 
     suspend fun getAllExchangeProducts(online: Boolean): List<ExchangeProduct> {
-        return if (online) {
-            try {
-                val snapshot = db.collection(collectionName).get().await()
-                val remoteProducts = snapshot.documents.map { doc ->
-                    ExchangeProduct(
-                        id = doc.id,
-                        name = doc.getString("name") ?: "",
-                        productToExchangeFor = doc.getString("productToExchangeFor") ?: "",
-                        imageURL = doc.getString("imageURL") ?: "",
-                        category = doc.getString("category") ?: "",
-                        description = doc.getString("description") ?: "",
-                        sellerID = doc.getString("sellerID") ?: "",
-                        sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
-                    )
+        return withContext(Dispatchers.IO)
+        {
+            if (online) {
+                try {
+                    val snapshot = db.collection("exchangeProducts").get().await()
+                    val remoteProducts = snapshot.documents.mapNotNull { doc ->
+                        val id = doc.id
+                        val name = doc.getString("name") ?: return@mapNotNull null
+                        val productToExchangeFor = doc.getString("productToExchangeFor") ?: ""
+                        val imageURL = doc.getString("imageURL") ?: ""
+                        val category = doc.getString("category") ?: ""
+                        val description = doc.getString("description") ?: ""
+                        val sellerID = doc.getString("sellerID") ?: ""
+                        val sellerRating = doc.getLong("sellerRating")?.toInt() ?: 0
+
+                        ExchangeProduct(
+                            id,
+                            name,
+                            productToExchangeFor,
+                            imageURL,
+                            category,
+                            description,
+                            sellerID,
+                            sellerRating
+                        )
+
+                    }
+                    // Guardamos productos en cache
+                    exchangeProductDao.clearAllExchangeProducts()
+                    exchangeProductDao.insertExchangeProducts(remoteProducts.map { it.toEntity() })
+
+                    remoteProducts
+                } catch (e: Exception) {
+                    Log.e("ExchangeProdRepo", "Error cargando remotos, cargando caché", e)
+
+                    val cached = exchangeProductDao.getAllCachedExchangeProducts().map { it.toDomain() }
+                    Log.d("CACHE", "📦 Productos intercambio en caché tras error: ${cached.size}")
+                    cached
                 }
 
-                // Actualizar caché local
-                withContext(Dispatchers.IO) {
-                    exchangeProductDao.clearAllExchangeProducts()
-                    exchangeProductDao.insertExchangeProducts(
-                        remoteProducts.map { modelToEntity(it) }
-                    )
-                }
-                remoteProducts
-            } catch (e: Exception) {
-                Log.e("ExchangeProdRepo", "Error cargando remotos, cargando caché", e)
-                getFromCache()
+            } else {
+                Log.d(
+                    "ExchangeProductRepository",
+                    "🔴 Sin conexión: devolviendo productos desde caché"
+                )
+
+                val cached = exchangeProductDao.getAllCachedExchangeProducts().map { it.toDomain() }
+                Log.d("CACHE", "📦 Productos intercambio en caché tras error: ${cached.size}")
+                cached
+                // Sin conexión: mostramos productos cacheados
             }
-        } else {
-            getFromCache()
         }
     }
 
-    private suspend fun getFromCache(): List<ExchangeProduct> =
-        withContext(Dispatchers.IO) {
-            exchangeProductDao.getAllCachedExchangeProducts().map { entityToModel(it) }
-        }
 
-    suspend fun insertOrUpdateProduct(product: ExchangeProduct, online: Boolean): Boolean {
-        // Guardar localmente siempre
-        withContext(Dispatchers.IO) {
-            exchangeProductDao.insertExchangeProducts(listOf(modelToEntity(product)))
-        }
-
+    suspend fun addExchangeProduct(exchangeProduct: ExchangeProduct, online: Boolean) {
         if (online) {
-            // Intentar subir a Firebase
-            return try {
-                val map = mapOf(
-                    "name" to product.name,
-                    "productToExchangeFor" to product.productToExchangeFor,
-                    "imageURL" to product.imageURL,
-                    "category" to product.category,
-                    "description" to product.description,
-                    "sellerID" to product.sellerID,
-                    "sellerRating" to product.sellerRating
-                )
-                db.collection(collectionName).document(product.id).set(map).await()
-                true
+            try {
+                db.collection("exchangeProducts")
+                    .document(exchangeProduct.id)
+                    .set(exchangeProduct)
+                    .await()
+
+                exchangeProductDao.insertExchangeProduct(exchangeProduct.toEntity(pendingUpload = false))
+                Log.d("ExchangeProductRepository", "✅ Producto subido en línea y guardado localmente.")
             } catch (e: Exception) {
-                Log.w("ExchangeProdRepo", "Error subiendo producto a Firebase", e)
-                false
+                Log.e("ExchangeProductRepository", "❌ Error subiendo producto online, guardando localmente como pendiente.")
+                saveExchangeProductLocallyWhenOffline(exchangeProduct)
             }
         } else {
-            // Sin conexión: solo cache, retorno false para saber que no sincronizó
-            return false
+            Log.d("ProductRepository", "📴 Sin conexión. Guardando producto localmente como pendiente.")
+            saveExchangeProductLocallyWhenOffline(exchangeProduct)
         }
     }
 
@@ -137,4 +153,69 @@ class ExchangeProductRepository(
         sellerID = e.sellerID,
         sellerRating = e.sellerRating
     )
+
+    suspend fun deleteExchangeProductById(productId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Eliminar en Firestore
+                db.collection("exchangeProducts").document(productId).delete().await()
+
+                // Eliminar también en Room
+                exchangeProductDao.deleteById(productId)
+
+                Log.d("ExchangeProductRepository", "✅ Producto $productId eliminado correctamente.")
+            } catch (e: Exception) {
+                Log.e("ExchangeProductRepository", "❌ Error eliminando producto: ${e.message}")
+                throw e // para que el ViewModel pueda capturar el error si es necesario
+            }
+        }
+    }
+
+    suspend fun saveExchangeProductLocallyWhenOffline(exchangeProduct: ExchangeProduct) {
+        withContext(Dispatchers.IO) {
+            try {
+                val entity = exchangeProduct.toEntity(pendingUpload = true)
+                exchangeProductDao.insertExchangeProduct(entity)
+                Log.d("ProductRepository", "📦 Producto guardado localmente con pendingUpload=true")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "❌ Error guardando producto local: ${e.message}")
+            }
+        }
+    }
+
+
+
+    suspend fun uploadPendingExchangeProducts() {
+        withContext(Dispatchers.IO) {
+            val pendingExchangeProducts = exchangeProductDao.getPendingUploadExchangeProducts().map { it.toDomain() }
+            for (exchangeProduct in pendingExchangeProducts) {
+                try {
+                    // Intentar subir a Firebase
+                    val success = uploadProductToServer(exchangeProduct)
+                    if (success) {
+                        // Marcar como subido (pendingUpload = false) en la base local
+                        val updatedEntity = exchangeProduct.toEntity(pendingUpload = false)
+                        exchangeProductDao.insertExchangeProduct(updatedEntity)
+                    }
+                } catch (e: Exception) {
+                    // Si falla, continuar con el siguiente producto
+                }
+            }
+        }
+    }
+
+    private suspend fun uploadProductToServer(exchangeProduct: ExchangeProduct): Boolean {
+        return try {
+
+            db.collection("exchangeProducts")
+                .document(exchangeProduct.id)
+                .set(exchangeProduct)
+                .await()
+            Log.d("ExchangeProductRepository", "✅ Producto subido exitosamente a Firebase")
+            true
+        } catch (e: Exception) {
+            Log.e("ExchangeProductRepository", "❌ Error subiendo producto a Firebase: ${e.message}")
+            false
+        }
+    }
 }

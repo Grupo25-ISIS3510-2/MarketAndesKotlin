@@ -36,6 +36,8 @@ import com.uniandes.marketandes.viewModel.ProductViewModelFactory
 import com.uniandes.marketandes.viewmodel.FavoritosViewModel
 import com.uniandes.marketandes.viewmodel.PerfilCheckViewModel
 import androidx.compose.ui.res.painterResource
+import com.uniandes.marketandes.viewModel.ExchangeProductViewModel
+import com.uniandes.marketandes.viewModel.ExchangeProductViewModelFactory
 
 
 @Composable
@@ -48,9 +50,16 @@ fun PagHome(navController: NavHostController) {
     val favoritosViewModel: FavoritosViewModel = viewModel(factory = favoritosFactory)
 
     val productViewModel: ProductViewModel = viewModel(factory = ProductViewModelFactory(connectivityObserver, context))
+    val exchangeProductViewModel: ExchangeProductViewModel = viewModel(factory = ExchangeProductViewModelFactory(connectivityObserver, context))
+
+
 
     val productos by productViewModel.products.collectAsStateWithLifecycle()
     val networkStatus by productViewModel.networkStatus.collectAsStateWithLifecycle()
+
+    val exchangeproductos by exchangeProductViewModel.exchangeProducts.collectAsStateWithLifecycle()
+    val networkStatuss by exchangeProductViewModel.networkStatus.collectAsStateWithLifecycle()
+
     val categoriaFavorita by favoritosViewModel.categoriaFavorita.collectAsState()
     val toastMessage by favoritosViewModel.mensajeVisible.collectAsState()
 
@@ -58,6 +67,7 @@ fun PagHome(navController: NavHostController) {
     val mostrarRecordatorio by perfilCheckViewModel.mostrarRecordatorio.collectAsState()
 
     Log.d("Conexion", "$networkStatus")
+    Log.d("Conexion", "$networkStatuss")
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
