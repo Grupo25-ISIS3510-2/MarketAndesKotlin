@@ -9,7 +9,7 @@ import com.uniandes.marketandes.model.Chat
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 
-class PagChatViewModel : ViewModel() {
+class ChatViewModel : ViewModel() {
     val chats = mutableStateOf<List<Chat>>(emptyList())
 
     private val db = FirebaseFirestore.getInstance()

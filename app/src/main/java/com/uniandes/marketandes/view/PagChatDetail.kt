@@ -13,13 +13,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.model.Message
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -33,16 +34,17 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.uniandes.marketandes.local.AppDatabase
-import coil.compose.AsyncImage
+import com.uniandes.marketandes.viewModel.ConnectivityViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatDetailScreen(chatId: String, navController: NavHostController) {
+fun PagChatDetail(chatId: String) {
     val context = LocalContext.current
     val messageDao = AppDatabase.getDatabase(context).messageDao()
     val repository = ChatRepository(FirebaseFirestore.getInstance(), messageDao)
     val viewModel: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(repository))
 
+    val connectivityViewModel: ConnectivityViewModel = viewModel()
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserUID = currentUser?.uid ?: ""
 
@@ -56,6 +58,10 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
 
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        connectivityViewModel.checkConnectivity(context)
+    }
 
     LaunchedEffect(chatId) {
         viewModel.fetchMessages(chatId)
@@ -100,8 +106,8 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
         ) {
-            AsyncImage(
-                model = otherUserImage.value,
+            GlideImage(
+                imageUrl = otherUserImage.value,
                 contentDescription = "Foto del otro usuario",
                 modifier = Modifier
                     .size(48.dp)
@@ -122,6 +128,13 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
                     color = Color.Gray
                 )
             }
+
+            Icon(
+                imageVector = if (connectivityViewModel.isConnected.value) Icons.Default.Wifi else Icons.Default.WifiOff,
+                contentDescription = "Conexión",
+                tint = if (connectivityViewModel.isConnected.value) Color(0xFFFFFFFF) else Color(0xFF00509D),
+                modifier = Modifier.size(24.dp)
+            )
         }
 
         LazyColumn(state = scrollState, modifier = Modifier.weight(1f)) {
@@ -163,13 +176,11 @@ fun ChatDetailScreen(chatId: String, navController: NavHostController) {
     }
 }
 
-
 @Composable
 fun MessageBubble(message: Message, currentUserUID: String) {
     val isCurrentUser = message.senderId == currentUserUID
     val backgroundColor = if (isCurrentUser) Color(0xFFFDC500) else Color(0xFF00509D)
     val textColor = if (isCurrentUser) Color.Black else Color.White
-    val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
 
     val formattedTime = formatTimestamp(message.timestamp)
 

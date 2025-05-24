@@ -27,12 +27,14 @@ import androidx.core.app.ActivityCompat
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.model.Chat
-import com.uniandes.marketandes.viewModel.PagChatViewModel
+import com.uniandes.marketandes.viewModel.ChatViewModel
 import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
+import androidx.compose.foundation.Image
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 
 @Composable
-fun PagChat(navController: NavHostController, viewModel: PagChatViewModel = remember { PagChatViewModel() }) {
+fun PagChat(navController: NavHostController, viewModel: ChatViewModel = remember { ChatViewModel() }) {
     val currentUserUID = FirebaseAuth.getInstance().currentUser?.uid
     val context = LocalContext.current
     val fusedLocationClient = remember {
@@ -117,13 +119,13 @@ fun ChatItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        AsyncImage(
-            model = chat.otherUserImage,
+        Image(
+            painter = rememberAsyncImagePainter(chat.otherUserImage),
             contentDescription = "Foto de perfil",
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(Color.LightGray, CircleShape),
+                .background(Color.LightGray),
             contentScale = ContentScale.Crop
         )
 

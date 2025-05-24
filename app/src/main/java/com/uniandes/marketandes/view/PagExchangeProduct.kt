@@ -1,29 +1,26 @@
 package com.uniandes.marketandes.view
 
-import PagVenderViewModelFactory
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.uniandes.marketandes.model.ProductForm
-import com.uniandes.marketandes.repository.ProductRepository
+import com.uniandes.marketandes.repository.ExchangeProductRepository
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
-import com.uniandes.marketandes.viewmodel.PagVenderViewModel
+import com.uniandes.marketandes.viewModel.PagExchangeProductViewModelFactory
+import com.uniandes.marketandes.viewmodel.PagExchangeProductViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PagVender(
-    productRepository: ProductRepository,
+fun PagExchangeProduct(
+    exchangeProductRepository: ExchangeProductRepository,
     connectivityObserver: NetworkConnectivityObserver,
-    viewModel: PagVenderViewModel = viewModel(
-        factory = PagVenderViewModelFactory(productRepository, connectivityObserver))
-    ){
+    viewModel: PagExchangeProductViewModel = viewModel(
+        factory = PagExchangeProductViewModelFactory(exchangeProductRepository, connectivityObserver)
+    )
+){
     val form by viewModel.formState.collectAsState()
     var message by remember { mutableStateOf("") }
     var showOfflineDialog by remember { mutableStateOf(false) }
@@ -38,7 +35,7 @@ fun PagVender(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Publicar nuevo producto", style = MaterialTheme.typography.titleLarge)
+            Text("Publicar nuevo producto de intercambio", style = MaterialTheme.typography.titleLarge)
 
             Spacer(Modifier.height(16.dp))
             OutlinedTextField(
@@ -47,17 +44,7 @@ fun PagVender(
                 label = { Text("Nombre del producto") },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = if (form.price == 0) "" else form.price.toString(),
-                onValueChange = {
-                    val parsed = it.toIntOrNull() ?: 0
-                    viewModel.updateForm(form.copy(price = parsed))
-                },
-                label = { Text("Precio") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = form.imageURL,
@@ -109,7 +96,7 @@ fun PagVender(
                     contentColor = Color.White
                 ),
                 onClick = {
-                    viewModel.submitProduct { result ->
+                    viewModel.submitExchangeProduct { result ->
                         when (result) {
                             "online" -> {
                                 message = "Producto subido con éxito"
@@ -125,7 +112,7 @@ fun PagVender(
                         }
                     }
                 },
-                enabled = form.name.isNotBlank() && form.price > 0 && form.imageURL.isNotBlank(),
+                enabled = form.name.isNotBlank()  && form.imageURL.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Subir producto")

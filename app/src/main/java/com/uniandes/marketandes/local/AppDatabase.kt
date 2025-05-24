@@ -9,10 +9,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.uniandes.marketandes.model.ProductEntity
 import com.uniandes.marketandes.model.FavoriteEntity
 import com.uniandes.marketandes.model.MessageEntity
+import com.uniandes.marketandes.model.ExchangeProductEntity
 
 @Database(
-    entities = [ProductEntity::class, FavoriteEntity::class, MessageEntity::class],
-    version = 4,
+    entities = [ProductEntity::class, FavoriteEntity::class, MessageEntity::class, ExchangeProductEntity::class],
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -20,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun messageDao(): MessageDao
+    abstract fun exchangeProductDao(): ExchangeProductDao
 
     companion object {
         @Volatile

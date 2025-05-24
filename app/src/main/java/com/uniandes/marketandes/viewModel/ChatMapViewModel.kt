@@ -10,7 +10,7 @@ import com.google.firebase.firestore.GeoPoint
 import com.uniandes.marketandes.model.PuntoDeInteres
 import kotlinx.coroutines.launch
 
-class PagChatMapViewModel : ViewModel() {
+class ChatMapViewModel : ViewModel() {
 
     val userLocations = mutableStateOf<Map<String, GeoPoint>>(emptyMap())
     val puntoSugerido = mutableStateOf<PuntoDeInteres?>(null)
@@ -19,9 +19,9 @@ class PagChatMapViewModel : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
 
     val puntos = listOf(
-        PuntoDeInteres(LatLng(4.603100641251616, -74.06514973706602), "Entrada del ML", "..."),
-        PuntoDeInteres(LatLng(4.601203630411922, -74.06556084750304), "El bobo", "..."),
-        PuntoDeInteres(LatLng(4.602659914804456, -74.06631365426061), "Primer piso del Aulas", "...")
+        PuntoDeInteres(LatLng(4.603100641251616, -74.06514973706602), "Entrada del ML", "...","..." ),
+        PuntoDeInteres(LatLng(4.601203630411922, -74.06556084750304), "El bobo", "...", "..."),
+        PuntoDeInteres(LatLng(4.602659914804456, -74.06631365426061), "Primer piso del Aulas", "...","...")
     )
 
     fun fetchUserLocations(chatId: String) {

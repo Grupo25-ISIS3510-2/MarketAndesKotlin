@@ -1,9 +1,9 @@
 package com.uniandes.marketandes.model
 
-data class Product(
-    val id:String,
+data class ExchangeProduct(
+    val id: String,
     val name: String,
-    val price: Int,
+    val productToExchangeFor: String,
     val imageURL: String,
     val category: String,
     val description: String,
@@ -11,4 +11,3 @@ data class Product(
     val sellerRating: Int,
     val pendingUpload: Boolean = false
 )
-

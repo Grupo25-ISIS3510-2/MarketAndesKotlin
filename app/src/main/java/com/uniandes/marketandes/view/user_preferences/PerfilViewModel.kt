@@ -5,82 +5,83 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import com.google.firebase.firestore.FieldValue
+
 
 class PerfilViewModel(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
-) : ViewModel()
-{
+) : ViewModel() {
 
     private val _perfilState = MutableStateFlow(PerfilUiState())
     val perfilState: StateFlow<PerfilUiState> = _perfilState
 
-    fun onNombreChange(value: String)
-    {
+    fun onNombreChange(value: String) {
         _perfilState.value = _perfilState.value.copy(nombre = value)
     }
 
-    fun onFechaNacimientoChange(value: String)
-    {
+    fun onFechaNacimientoChange(value: String) {
         _perfilState.value = _perfilState.value.copy(fechaNacimiento = value)
     }
 
-    fun onTelefonoChange(value: String)
-    {
+    fun onTelefonoChange(value: String) {
         _perfilState.value = _perfilState.value.copy(telefono = value)
     }
 
-    fun onFacultadesChange(nuevasFacultades: List<String>)
-    {
+    fun onFacultadesChange(nuevasFacultades: List<String>) {
         _perfilState.value = _perfilState.value.copy(facultades = nuevasFacultades)
     }
 
-    fun onInteresesChange(nuevosIntereses: List<String>)
-    {
+    fun onInteresesChange(nuevosIntereses: List<String>) {
         _perfilState.value = _perfilState.value.copy(intereses = nuevosIntereses)
     }
 
-    fun resetMensaje()
-    {
+    fun resetMensaje() {
         _perfilState.value = _perfilState.value.copy(mensaje = "")
     }
 
-    fun cargarPerfil()
-    {
+    // Cargar perfil del usuario
+    fun cargarPerfil() {
         val uid = auth.currentUser?.uid ?: return
 
         viewModelScope.launch {
-            try
-            {
-                val snapshot = db.collection("users").document(uid).get().await()
+            try {
+                // Usamos withContext(Dispatchers.IO) para que la carga de datos se realice en segundo plano
+                val snapshot = withContext(Dispatchers.IO) {
+                    db.collection("users").document(uid).get().await()
+                }
+
                 val nombre = snapshot.getString("nombre") ?: ""
                 val fechaNacimiento = snapshot.getString("fechaNacimiento") ?: ""
                 val telefono = snapshot.getString("telefono") ?: ""
                 val facultades = snapshot.get("faculties") as? List<String> ?: emptyList()
                 val intereses = snapshot.get("interests") as? List<String> ?: emptyList()
+                val lastUpdateTimestamp = snapshot.getTimestamp("lastProfileUpdate")?.toDate()?.time
+
 
                 _perfilState.value = PerfilUiState(
                     nombre = nombre,
                     fechaNacimiento = fechaNacimiento,
                     telefono = telefono,
                     facultades = facultades,
-                    intereses = intereses
+                    intereses = intereses,
+                    lastProfileUpdate = lastUpdateTimestamp
                 )
-            }
-            catch (e: Exception)
-            {
+
+            } catch (e: Exception) {
                 _perfilState.value = _perfilState.value.copy(mensaje = "Error al cargar perfil: ${e.message}")
             }
         }
     }
 
-
-    fun guardarPerfil()
-    {
+    // Guardar perfil actualizado
+    fun guardarPerfil() {
         val uid = auth.currentUser?.uid ?: return
         val nombre = _perfilState.value.nombre
 
@@ -89,14 +90,18 @@ class PerfilViewModel(
             "fechaNacimiento" to _perfilState.value.fechaNacimiento,
             "telefono" to _perfilState.value.telefono,
             "faculties" to _perfilState.value.facultades,
-            "interests" to _perfilState.value.intereses
+            "interests" to _perfilState.value.intereses,
+            "lastProfileUpdate" to FieldValue.serverTimestamp() // Timestamp de la última actualización
         )
 
         viewModelScope.launch {
-            try
-            {
-                db.collection("users").document(uid).update(perfil).await()
+            try {
+                // Realizamos la actualización de los datos en Firestore en segundo plano
+                withContext(Dispatchers.IO) {
+                    db.collection("users").document(uid).update(perfil).await()
+                }
 
+                // Actualizamos el perfil del usuario en FirebaseAuth
                 val profileUpdates = UserProfileChangeRequest.Builder()
                     .setDisplayName(nombre)
                     .build()
@@ -104,9 +109,7 @@ class PerfilViewModel(
                 auth.currentUser?.updateProfile(profileUpdates)?.await()
 
                 _perfilState.value = _perfilState.value.copy(mensaje = "Perfil actualizado correctamente")
-            }
-            catch (e: Exception)
-            {
+            } catch (e: Exception) {
                 _perfilState.value = _perfilState.value.copy(mensaje = "Error al guardar perfil: ${e.message}")
             }
         }
@@ -119,5 +122,7 @@ data class PerfilUiState(
     val telefono: String = "",
     val mensaje: String = "",
     val facultades: List<String> = emptyList(),
-    val intereses: List<String> = emptyList()
+    val intereses: List<String> = emptyList(),
+    val lastProfileUpdate: Long? = null
+
 )

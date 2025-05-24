@@ -1,7 +1,7 @@
 package com.uniandes.marketandes.view
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
+import androidx.collection.ArrayMap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,22 +24,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.uniandes.marketandes.model.Product
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 
 @Composable
 fun PagImpulsar(navController: NavHostController) {
     val context = LocalContext.current
     val db = Firebase.firestore
-    val productosPorCategoria = remember { mutableStateMapOf<String, MutableList<Product>>() }
+    val productosPorCategoria = remember { mutableStateOf(ArrayMap<String, MutableList<Product>>()) }
 
     LaunchedEffect(true) {
         db.collection("products")
             .get()
             .addOnSuccessListener { result ->
-                val mapa = mutableMapOf<String, MutableList<Product>>()
+                val mapa = ArrayMap<String, MutableList<Product>>()
                 for (document in result) {
                     val id = document.id
                     val nombre = document.getString("name") ?: "Sin nombre"
@@ -51,10 +52,15 @@ fun PagImpulsar(navController: NavHostController) {
                     val sellerRating = (document.getDouble("sellerRating") ?: 0.0).toInt()
 
                     val producto = Product(id, nombre, precio, imageURL, categoria, descripcion, sellerID, sellerRating)
-                    mapa.getOrPut(categoria) { mutableListOf() }.add(producto)
+                    if (mapa.containsKey(categoria)) {
+                        mapa[categoria]!!.add(producto)
+                    } else {
+                        mapa[categoria] = mutableListOf(producto)
+                    }
                 }
-                productosPorCategoria.clear()
-                productosPorCategoria.putAll(mapa.toSortedMap())
+
+                productosPorCategoria.value.clear()
+                productosPorCategoria.value.putAll(mapa.toMap())
             }
             .addOnFailureListener { e ->
                 Toast.makeText(context, "Error cargando datos: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -127,7 +133,7 @@ fun PagImpulsar(navController: NavHostController) {
             )
         }
 
-        productosPorCategoria.forEach { (categoria, productos) ->
+        productosPorCategoria.value.forEach { (categoria, productos) ->
             item {
                 Box(
                     modifier = Modifier
@@ -163,6 +169,7 @@ fun PagImpulsar(navController: NavHostController) {
     }
 }
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun ProductoCard(product: Product, navController: NavHostController) {
     Card(
@@ -172,7 +179,7 @@ fun ProductoCard(product: Product, navController: NavHostController) {
             .clickable { navController.navigate("detalle_compra/${product.id}") },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F1FB)) // Morado claro
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F1FB))
     ) {
         Column(
             modifier = Modifier
@@ -180,8 +187,8 @@ fun ProductoCard(product: Product, navController: NavHostController) {
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(product.imageURL),
+            GlideImage(
+                model = product.imageURL,
                 contentDescription = "Imagen de ${product.name}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -212,7 +219,7 @@ fun ProductoCard(product: Product, navController: NavHostController) {
                     .fillMaxWidth()
                     .height(36.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF002366)), // Azul oscuro
+                    .background(Color(0xFF002366)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

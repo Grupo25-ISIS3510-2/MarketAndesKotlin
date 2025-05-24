@@ -2,7 +2,6 @@ package com.uniandes.marketandes.view.preferences
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import kotlinx.coroutines.launch
 
 @Composable
 fun InterestSelectionScreen(
@@ -29,9 +29,6 @@ fun InterestSelectionScreen(
     isEdit: Boolean,
     preselectedInterests: List<String>
 ) {
-    Log.d("InterestScreen", "isEdit = $isEdit")
-    Log.d("InterestScreen", "Intereses recibidos por parámetro: ${preselectedInterests.joinToString()}")
-
     val interests = listOf(
         "Arte", "Física", "Utensilios", "Diseño", "Lenguas", "Ingeniería", "Libros", "Medicina",
         "Tecnología", "Administración", "Software", "Música", "Arquitectura", "Psicología",
@@ -40,12 +37,15 @@ fun InterestSelectionScreen(
 
     val selectedInterests = remember { mutableStateListOf<String>() }
     val userId = FirebaseAuth.getInstance().currentUser?.uid
-    val connectivityObserver = remember { NetworkConnectivityObserver(navController.context) }
-    val connectivityState = connectivityObserver.isConnected.collectAsState(initial = false)
-    val isOffline = !connectivityState.value
     val context = LocalContext.current
+    val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+    val connectivityState by connectivityObserver.isConnected.collectAsState(initial = false)
+    val isOffline = !connectivityState
 
-    // Preseleccionar intereses una sola vez al iniciar
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Preseleccionar intereses al iniciar
     LaunchedEffect(Unit) {
         if (preselectedInterests.isNotEmpty()) {
             selectedInterests.clear()
@@ -60,40 +60,22 @@ fun InterestSelectionScreen(
         }
     }
 
-    // Guardar intereses localmente si estamos offline
-    fun saveInterestLocally(context: Context, interest: List<String>) {
+    // Guardar localmente
+    fun saveInterestLocally(interest: List<String>) {
         val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putStringSet("saved_interests", interest.toSet())
-        editor.apply()
+        with(sharedPreferences.edit()) {
+            putStringSet("saved_interests", interest.toSet())
+            apply()
+        }
         Log.d("InterestScreen", "Intereses guardadas localmente: ${interest.toSet()}")
     }
 
-    // Sincronizar los intereses cuando se restablezca la conexión
-    fun syncInterestWhenOnline() {
-        if (!isOffline) {
-            if (userId != null) {
-                Log.d("InterestScreen", "Sincronizando intereses con Firebase")
-                viewModel.saveInterests(userId) {
-                    Log.d("InterestScreen", "Sincronización exitosa con Firebase")
-                    // Limpiar los intereses guardados localmente después de la sincronización
-                    val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
-                    sharedPreferences.edit().remove("saved_interests").apply()
-                    Toast.makeText(context, "Intereses actualizados", Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
-                }
-            }
-        }
-    }
-
-    // Observar el estado de conectividad y sincronizar cuando vuelva a estar en línea
-    LaunchedEffect(connectivityState.value) {
-        Log.d("InterestScreen", "Conectividad cambiada: ${connectivityState.value}")
-        if (!isOffline) {
-            Log.d("InterestScreen", "Conexión restaurada. Sincronizando intereses guardados localmente.")
+    // Sincronizar cuando vuelva la conexión
+    LaunchedEffect(connectivityState) {
+        if (!isOffline && userId != null) {
             val sharedPreferences = context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
             val savedInterests = sharedPreferences.getStringSet("saved_interests", emptySet())?.toList() ?: emptyList()
-            if (savedInterests.isNotEmpty() && userId != null) {
+            if (savedInterests.isNotEmpty()) {
                 Log.d("InterestScreen", "Sincronizando intereses guardadas localmente: $savedInterests")
                 viewModel.saveInterests(userId) {
                     sharedPreferences.edit().remove("saved_interests").apply()
@@ -103,103 +85,135 @@ fun InterestSelectionScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .height(6.dp)
-                .background(Color(0xFFFFC107))
-        )
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Text(
-            text = "Intereses",
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF002366)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Déjanos saber tus intereses para recomendarte mejores productos!",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column {
-            interests.chunked(2).forEach { rowInterests ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    rowInterests.forEach { interest ->
-                        InterestChip(
-                            text = interest,
-                            isSelected = selectedInterests.contains(interest),
-                            onClick = {
-                                if (selectedInterests.contains(interest)) {
-                                    selectedInterests.remove(interest)
-                                } else {
-                                    selectedInterests.add(interest)
-                                }
-                                viewModel.selectedInterests = selectedInterests
-                            }
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    actionColor = Color.White,
+                    containerColor = Color(0xFF00205B),
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(12.dp)
+                )
             }
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(6.dp)
+                    .background(Color(0xFFFFC107))
+            )
 
-        Spacer(modifier = Modifier.weight(1f))  // Aquí aseguramos que el botón quede al fondo
+            Spacer(modifier = Modifier.height(30.dp))
 
-        Button(
-            onClick = {
-                if (userId != null) {
-                    if (isOffline)
-                    {
-                        saveInterestLocally(context, selectedInterests)
-                        Toast.makeText(context, "Intereses guardadas localmente", Toast.LENGTH_SHORT).show()
-                    } else {
-                        syncInterestWhenOnline()
-                    }
-                    Log.d("InterestScreen", "Intereses seleccionados: $selectedInterests")
-                    viewModel.saveInterests(userId) {
-                        if (isEdit) {
-                            navController.popBackStack()
-                        } else {
-                            navController.navigate("pag_home")
+            Text(
+                text = "Intereses",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF002366)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Déjanos saber tus intereses para recomendarte mejores productos!",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column {
+                interests.chunked(2).forEach { rowInterests ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowInterests.forEach { interest ->
+                            InterestChip(
+                                text = interest,
+                                isSelected = selectedInterests.contains(interest),
+                                onClick = {
+                                    if (selectedInterests.contains(interest)) {
+                                        selectedInterests.remove(interest)
+                                    } else {
+                                        selectedInterests.add(interest)
+                                    }
+                                    viewModel.selectedInterests = selectedInterests
+                                }
+                            )
                         }
                     }
-                } else {
-                    Log.e("InterestSelectionScreen", "Error: Usuario no autenticado")
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)),
-            shape = RoundedCornerShape(13.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .padding(vertical = 1.dp)  // Añadido padding adicional para asegurar el espacio
-        ) {
-            Text(
-                text = if (isEdit) "GUARDAR CAMBIOS" else "CONTINUAR",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+            }
 
-        //Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
+
+            Button(
+                onClick = {
+                    if (userId != null) {
+                        coroutineScope.launch {
+                            if (isOffline) {
+                                saveInterestLocally(selectedInterests)
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Intereses actualizados, se sincronizará cuando regrese la conexión",
+                                    actionLabel = "Entendido",
+                                    duration = SnackbarDuration.Indefinite
+                                )
+                                // Aquí puedes manejar si quieres hacer algo cuando el usuario pulse "Entendido"
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    // Por ejemplo, podrías navegar o simplemente cerrar el snackbar
+                                    Log.d("InterestScreen", "Usuario entendió el mensaje del snackbar")
+                                }
+                            } else {
+                                viewModel.saveInterests(userId) {
+                                    coroutineScope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Intereses actualizados",
+                                            actionLabel = "Entendido",
+                                            duration = SnackbarDuration.Indefinite
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            if (isEdit) {
+                                                navController.navigate("pag_perfil_screen")
+                                            } else {
+                                                navController.navigate("pag_home")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Log.e("InterestSelectionScreen", "Error: Usuario no autenticado")
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF002366)),
+                shape = RoundedCornerShape(13.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .padding(vertical = 1.dp)
+            ) {
+                Text(
+                    text = if (isEdit) "GUARDAR CAMBIOS" else "CONTINUAR",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 

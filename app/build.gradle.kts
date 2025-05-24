@@ -94,6 +94,8 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
+    implementation(libs.androidx.navigation.runtime.android)
+    implementation(libs.androidx.storage)
     kapt ("com.github.bumptech.glide:compiler:4.16.0")
 
 

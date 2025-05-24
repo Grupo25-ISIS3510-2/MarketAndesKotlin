@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.foundation.layout.*
@@ -54,9 +53,13 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.uniandes.marketandes.R
 import com.uniandes.marketandes.model.BottomNavItem
+import com.uniandes.marketandes.repository.ExchangeProductRepository
+import com.uniandes.marketandes.repository.ProductRepository
 import com.uniandes.marketandes.view.favorites.PagFavoritos
 import com.uniandes.marketandes.viewModel.ProductViewModel
 import com.uniandes.marketandes.util.NetworkConnectivityObserver
+import com.uniandes.marketandes.viewModel.ExchangeProductViewModel
+import com.uniandes.marketandes.viewModel.ExchangeProductViewModelFactory
 import com.uniandes.marketandes.viewModel.ProductViewModelFactory
 
 
@@ -72,7 +75,7 @@ fun MainScreen() {
 
     val items = listOf(
         BottomNavItem("", R.drawable.shop_icon, "pag_comprar"),
-        BottomNavItem("", R.drawable.add_icon, "pag_vender"),
+        BottomNavItem("", R.drawable.add_icon, "pag_seleccion"),
         BottomNavItem("", R.drawable.home_icon, "pag_home"),
         BottomNavItem("", R.drawable.exchange_icon, "pag_intercambio"),
         BottomNavItem("", R.drawable.chat_icon, "pag_chat")
@@ -182,16 +185,78 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
             val productViewModel: ProductViewModel = viewModel()
             PagComprar(navController, productViewModel)
         }
+
+
+        composable("pag_seleccion") { Pag_seleccion (navController ) }
+
         composable("pag_impulsar") { PagImpulsar(navController) }
 
-        composable("pag_vender") { PagVender() }
+
+        composable("pag_ExchangeProduct") {backStackEntry ->
+
+            val context = LocalContext.current
+            val exchangeProductRepository = remember { ExchangeProductRepository(context) }
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+
+            PagExchangeProduct(
+                exchangeProductRepository = exchangeProductRepository,
+                connectivityObserver = connectivityObserver
+            )
+        }
+
+
+        composable("pag_vender") { backStackEntry ->
+
+            val context = LocalContext.current
+            val productRepository = remember { ProductRepository(context) }
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+
+            PagVender(
+                productRepository = productRepository,
+                connectivityObserver = connectivityObserver
+            )
+        }
+
+
+        composable("pag_seleccion") { Pag_seleccion(navController) }
         composable("pag_home") { PagHome(navController) }
-        composable("pag_intercambio") { PagIntercambio() }
+        composable("pag_intercambio") {
+            val context = LocalContext.current
+            val connectivityObserver = remember { NetworkConnectivityObserver(context) }
+            val exchangeProductViewModel: ExchangeProductViewModel = viewModel(
+                factory = ExchangeProductViewModelFactory(connectivityObserver, context)
+            )
+            PagIntercambiar(navController, exchangeProductViewModel)
+        }
         composable("pag_chat") { PagChat(navController) }
 
         composable("pag_perfil_screen") { PerfilScreen(navController) }
         composable("pag_favoritos") { PagFavoritos(navController) }
         composable("pag_misPublicaciones") { Pag_misPublicaciones(navController) }
+
+        composable(
+            route = "editar_publicacion/{productId}",
+            arguments = listOf(navArgument("productId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            PagEditarProducto(navController = navController, productId = productId,
+                connectivityObserver = NetworkConnectivityObserver(LocalContext.current)
+            )
+        }
+
+        composable(
+            route = "detalle_intercambiar/{productId}",
+            arguments = listOf(navArgument("productId") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            PagIntercambiarDetail(
+                navController = navController,
+                productId = productId
+            )
+        }
+
         composable(
             route = "edit_faculties?preselected={preselected}",
             arguments = listOf(
@@ -214,18 +279,18 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
 
         composable(
-            route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}",
+            route = "storemaps?destinoNombre={destinoNombre}&destinoImagen={destinoImagen}&destinoDireccion={destinoDireccion}",
             arguments = listOf(
                 navArgument("destinoNombre") { defaultValue = ""; nullable = true },
-                navArgument("destinoImagen") { defaultValue = ""; nullable = true }
+                navArgument("destinoImagen") { defaultValue = ""; nullable = true },
+                navArgument("destinoDireccion") { defaultValue = ""; nullable = true }
             )
         ) { backStackEntry ->
             val destinoNombre = backStackEntry.arguments?.getString("destinoNombre")
             val destinoImagen = backStackEntry.arguments?.getString("destinoImagen")
-            PagStoreMaps(navController, destinoNombre, destinoImagen)
+            val destinoDireccion = backStackEntry.arguments?.getString("destinoDireccion")
+            PagStoreMaps(navController, destinoNombre, destinoImagen, destinoDireccion)
         }
-
-
 
         composable(
             route = "edit_interests?preselected={preselected}",
@@ -248,8 +313,6 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
 
             )
         }
-
-
 
         composable("pag_comprar") {
             val context = LocalContext.current
@@ -283,13 +346,13 @@ fun ContentScreen(navController: NavHostController, userLocation: LatLng?, modif
         composable("chatDetail/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId")
             if (chatId != null) {
-                ChatDetailScreen(chatId = chatId, navController = navController)
+                PagChatDetail(chatId = chatId)
             }
         }
         composable("confirmarUbicacion/{chatId}/{nombreUbicacion}/{imagenUrl}") {
             ConfirmarUbicacionScreen(navController = navController)
         }
-        composable("ubicaciondetail/{nombreUbicacion}/{imagenUrl}") {
+        composable("ubicaciondetail/{nombreUbicacion}/{imagenUrl}/{direccion}") {
             UbicacionDetail(navController)
         }
     }

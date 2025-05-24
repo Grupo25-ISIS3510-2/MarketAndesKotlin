@@ -42,7 +42,7 @@ fun GetUserLocation(onLocationRetrieved: (LatLng) -> Unit) {
 }
 
 @Composable
-fun PagStoreMaps(navController: NavHostController, destinoNombre: String? = null, destinoImagen: String? = null) {
+fun PagStoreMaps(navController: NavHostController, destinoNombre: String? = null, destinoImagen: String? = null, destinoDireccion: String? = null) {
 
 
     val context = LocalContext.current
@@ -66,37 +66,44 @@ fun PagStoreMaps(navController: NavHostController, destinoNombre: String? = null
         PuntoDeInteres(
             latLng = LatLng(4.603728473666652, -74.06595420828403),
             nombreUbicacion = "Papeleria el Toro",
-            imagenUrl = "https://lh5.googleusercontent.com/p/AF1QipOkuk68xYsDm9oKAiqJw7-asTuOEdCoJMddY104=w426-h240-k-no"
+            imagenUrl = "https://lh5.googleusercontent.com/p/AF1QipOkuk68xYsDm9oKAiqJw7-asTuOEdCoJMddY104=w426-h240-k-no",
+            direccion = "Cra. 1 #20a-20, Santa Fé, Bogotá"
         ),
         PuntoDeInteres(
             latLng = LatLng(4.603924729028438, -74.06583195459699),
             nombreUbicacion = "Cintel Tecnologia",
-            imagenUrl = "https://lh5.googleusercontent.com/p/AF1QipOr32q12dZOj0S5IxEmzG3MYS6ZZETCbpj4jdYk=w408-h725-k-no"
+            imagenUrl = "https://lh5.googleusercontent.com/p/AF1QipOr32q12dZOj0S5IxEmzG3MYS6ZZETCbpj4jdYk=w408-h725-k-no",
+            direccion = "#20A Carrera 1 #40, Bogotá"
         ),
         PuntoDeInteres(
             latLng = LatLng(4.603649834194452, -74.06696533067164),
             nombreUbicacion = "Plotter Art",
-            imagenUrl = "https://lh5.googleusercontent.com/p/AF1QipOgTHXiL_zKcMkfUUO1Wy1i-xDdPm0l6ffVF3_R=w408-h544-k-no"
+            imagenUrl = "https://lh5.googleusercontent.com/p/AF1QipOgTHXiL_zKcMkfUUO1Wy1i-xDdPm0l6ffVF3_R=w408-h544-k-no",
+            direccion = "Cl. 20 #2A-58"
         ),
         PuntoDeInteres(
             latLng = LatLng(4.602428018244872, -74.06646040482757),
             nombreUbicacion = "QUALITY PLOTTER",
-            imagenUrl = "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=2Qvh2CPDjL0bMWooepEqbw&cb_client=search.gws-prod.gps&w=408&h=240&yaw=208.70874&pitch=0&thumbfov=100"
+            imagenUrl = "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=2Qvh2CPDjL0bMWooepEqbw&cb_client=search.gws-prod.gps&w=408&h=240&yaw=208.70874&pitch=0&thumbfov=100",
+            direccion = "Cl. 19 Bis #1-29 LOCAL1"
         ),
         PuntoDeInteres(
             latLng = LatLng(4.602392713212415, -74.06641116603761),
             nombreUbicacion = "Centro de Copiado La Primera",
-            imagenUrl = "https://lh3.googleusercontent.com/gps-proxy/ALd4DhERgnRaXdctOjeRbXXM3O__RLWSqwliRklaOpXfUL9O_JDSlT3TujoD14UfJRboMfyoZI0mijEb_JCesU0M33-PoS8AmWWu9CbQinkMRaqeO5VKlAKHEbAJypWOW3eNzJjU3uswisraIdBiYBZY8lT0uWFZHVomdi1jEpbLvu6OOv9A7UZwkwhi6Ro5XybLZWTemiY=w408-h306-k-no"
+            imagenUrl = "https://lh3.googleusercontent.com/proxy/mmxSx3o1iRJNcNk0n-pFz817M2wb0UThLK92FQnjZnIF6vZzypGplhvmn-WJu8CCG8e9uDlzOi5HHLN4ZaRMAuPJ67gHtIRJvx-z119Ags1sCa-7oxw2jMCdyglcwfXNj2HgsSpUNm_NoOV0EjCdTEh1bbywH8VokVLtPA=s1360-w1360-h1020-rw",
+            direccion = "Cl. 19 #1 - 15, Bogotá"
         ),
         PuntoDeInteres(
             latLng = LatLng(4.602325492832178, -74.0672307220746),
             nombreUbicacion = "Copy Andes E.U.",
-            imagenUrl = "https://direccion.com.co/wp-content/uploads/2017/10/COPYANDES.jpg.webp"
+            imagenUrl = "https://direccion.com.co/wp-content/uploads/2017/10/COPYANDES.jpg.webp",
+            direccion = "Cra. 2a #18a-52, Bogotá"
         ),
         PuntoDeInteres(
             latLng = LatLng(4.602522568346729, -74.0666901367991),
             nombreUbicacion = "Print Copy",
-            imagenUrl = "https://lh3.googleusercontent.com/gps-proxy/ALd4DhEMyqsq1gw6isHqFQqvbSADwoCbJjX8Ofvu40eYNALvJqov9MMuV7KQkyrJnGg_LGcxeMeFkxr2zu4JIRzlFWw4bkx23llv_Ww_lx6uEEDXdW1KWC3xYs_E2WvHH0KZEtNWiNN76klOMpW8F7Wgc2J46-mEjj9wliXpAuofh87f4FNKsw_ZgNokc_xv_5VDhwe5WH4=w408-h306-k-no"
+            imagenUrl = "https://lh3.googleusercontent.com/proxy/MNQhrtYskUfTJUe4yF-zJvH821JxHxOxFWZYBxy5CzLmFI-bwzowyR964Z-6bhSIEAgAvZ7iUgt3gfMtoKGaTTolNLO2jNumDx201Dr_1wgw02Iqv-IogS9WXeiGtebSjd_il4puH3y9szAqt6Yiljkm7JS0ezSF8ICTqw=s1360-w1360-h1020-rw",
+            direccion = "Cl. 19 #1-49, Bogotá"
         )
     )
 
@@ -205,8 +212,9 @@ fun PagStoreMaps(navController: NavHostController, destinoNombre: String? = null
 fun showLocationInfo1(punto: PuntoDeInteres, navController: NavHostController) {
     val nombreUbicacion = URLEncoder.encode(punto.nombreUbicacion, "UTF-8")
     val imagenUrl = URLEncoder.encode(punto.imagenUrl, "UTF-8")
+    val direccion = URLEncoder.encode(punto.direccion, "UTF-8")
 
-    navController.navigate("ubicaciondetail/$nombreUbicacion/$imagenUrl")
+    navController.navigate("ubicaciondetail/$nombreUbicacion/$imagenUrl/$direccion")
 }
 
 @Composable
